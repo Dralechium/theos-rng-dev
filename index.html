@@ -701,6 +701,18 @@ if(saveVersion < SAVE_VERSION){
 }
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = JSON.parse(localStorage.getItem("best")) || null;
+if(best && best.name && !best.id){
+
+  const match = viewers.find(v => v.name === best.name);
+
+  if(match){
+    best = {
+      id: match.id,
+      name: match.name,
+      odds: match.odds
+    };
+  }
+}
 
 document.getElementById("rolls").innerText = rolls;
 
@@ -871,11 +883,17 @@ function finish(v){
     playCutscene(r);
   }
 
-  if(!best || v.odds > best.odds){
-    best = { name:v.name, odds:v.odds };
+  if(!best || v.id !== best.id || v.odds > best.odds){
+    best = { id: v.id, name: v.name, odds: v.odds };
 
     const bestText = document.getElementById("best");
-    bestText.innerText = `${best.name} (1/${best.odds})`;
+    const bestViewer = viewers.find(v => v.id === best.id);
+
+    if(bestViewer){
+      bestText.innerText = `${bestViewer.name} (1/${bestViewer.odds})`;
+      bestText.className = "";
+      bestText.classList.add("best-" + rarity(bestViewer.odds));
+    }
 
     bestText.className = "";
     bestText.classList.add("best-" + rarity(best.odds));
