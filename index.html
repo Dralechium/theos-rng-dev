@@ -701,6 +701,16 @@ if(saveVersion < SAVE_VERSION){
 }
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = JSON.parse(localStorage.getItem("best")) || null;
+for (const v of viewers) {
+
+  const owned = inventory[v.id];
+
+  // if player owns it, but odds changed since they got it → reset it
+  if (owned && owned.odds !== v.odds) {
+    delete inventory[v.id];
+  }
+}
+
 if(best && best.name && !best.id){
 
   const match = viewers.find(v => v.name === best.name);
@@ -870,7 +880,14 @@ function show(v){
 /* FINISH */
 function finish(v){
 
-  inventory[v.id] = (inventory[v.id] || 0) + 1;
+  if (!inventory[v.id]) {
+    inventory[v.id] = {
+      count: 1,
+      odds: v.odds
+    };
+  } else {
+    inventory[v.id].count++;
+  }
 
   const r = rarity(v.odds);
 
@@ -909,7 +926,8 @@ function render(){
   inv.innerHTML = "";
 
   for(let v of viewers){
-    let owned = inventory[v.id];
+    let data = inventory[v.id];
+    let owned = data?.count;
 
     inv.innerHTML += `
   <div class="card ${owned ? rarity(v.odds) : "locked"}">
