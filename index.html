@@ -658,13 +658,11 @@ const viewers = [
   {id:"IVDrale", name:"IVDrale", odds:1000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6e71f426-65ca-4914-b6e8-0e5499f032cb-profile_image-70x70.png"},
   {id:"Gamingbyte444", name:"Gamingbyte444", odds:1024, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/a6d961bf-ece5-4464-9b1e-5a326cfebe94-profile_image-70x70.png"},
   {id:"Christ_Is_God", name:"Christ_Is_God", odds:5000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/98b31c09-fa8b-4318-88bd-ef8a0443b772-profile_image-70x70.png"},
-  {id:"kazagd", name:"kazagd", odds:7500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/7725062e-c231-406a-b000-34973ce973a2-profile_image-70x70.png"},
-  {id:"taiago7", name:"taiago7", odds:10000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/133319eb-8b72-40c2-89f5-4bcf9c2dfa24-profile_image-70x70.png"},
-  {id:"spaceuk", name:"spaceuk", odds:50000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/66d53358-962a-4f18-8917-12a2d220e0ef-profile_image-70x70.png"},
-  {id:"theosGMD", name:"theosGMD", odds:100000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/0ffc8233-6b32-411e-bfbd-4167c09cc2a2-profile_image-70x70.png"}
+  {id:"spaceuk", name:"spaceuk", odds:7500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/66d53358-962a-4f18-8917-12a2d220e0ef-profile_image-70x70.png"},
+  {id:"theosGMD", name:"theosGMD", odds:10000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/0ffc8233-6b32-411e-bfbd-4167c09cc2a2-profile_image-70x70.png"}
 ];
 
-const defaultViewer = viewers.find(v => v.name === "theosGMD");
+const defaultViewer = viewers[viewers.length - 1];
 
 /* RARITY */
 function rarity(o){
@@ -677,53 +675,8 @@ function rarity(o){
 
 /* DATA */
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
-const SAVE_VERSION = 2;
-let saveVersion = Number(localStorage.getItem("saveVersion") || 1);
-
-if (saveVersion < SAVE_VERSION) {
-  const newInventory = {};
-
-  for (const v of viewers) {
-    const old = inventory[v.name];
-
-    if (typeof old === "number") {
-      newInventory[v.id] = {
-        count: old,
-        odds: v.odds
-      };
-    }
-  }
-
-  inventory = newInventory;
-
-  localStorage.setItem("inv", JSON.stringify(inventory));
-  localStorage.setItem("saveVersion", SAVE_VERSION);
-}
-
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = JSON.parse(localStorage.getItem("best")) || null;
-for (const v of viewers) {
-
-  const owned = inventory[v.id];
-
-  // if player owns it, but odds changed since they got it → reset it
-  if (owned && owned.odds !== v.odds) {
-    delete inventory[v.id];
-  }
-}
-
-if(best && best.name && !best.id){
-
-  const match = viewers.find(v => v.name === best.name);
-
-  if(match){
-    best = {
-      id: match.id,
-      name: match.name,
-      odds: match.odds
-    };
-  }
-}
 
 document.getElementById("rolls").innerText = rolls;
 
@@ -867,7 +820,7 @@ function show(v){
   const display = document.getElementById("display");
 
   document.getElementById("img").src = v.image;
-  document.getElementById("name").innerText = v.name;
+  document.getElementById("name").innerText = v.id;
   document.getElementById("odds").innerText = "1 in " + v.odds;
 
   display.className = "";
@@ -878,18 +831,47 @@ function show(v){
   display.querySelectorAll(".cardSparkle").forEach(e => e.remove());
 }
 
-function addToInventory(v){
-  if (!inventory[v.id]) {
-    inventory[v.id] = { count: 1, odds: v.odds };
-  } else {
-    inventory[v.id].count++;
+function migrateOldSave() {
+  const old = JSON.parse(localStorage.getItem("inv") || "{}");
+  const newInv = {};
+
+  for (const v of viewers) {
+    // if old save used names, convert them
+    if (old[v.name] !== undefined) {
+      newInv[v.id] = old[v.name];
+    }
+
+    // already-migrated or new
+    if (old[v.id] !== undefined) {
+      newInv[v.id] = old[v.id];
+    }
+  }
+
+  inventory = newInv;
+  save();
+}
+
+migrateOldSave();
+
+function migrateCardUpgrades() {
+  for (const v of viewers) {
+    const upgrade = cardUpgrades[v.id];
+    if (!upgrade) continue;
+
+    // no need to transfer inventory if id unchanged
+    // but we ensure odds update is consistent everywhere
+    if (v.odds !== upgrade.newOdds && v.odds === upgrade.oldOdds) {
+      v.odds = upgrade.newOdds;
+    }
   }
 }
+
+migrateCardUpgrades();
 
 /* FINISH */
 function finish(v){
 
-  addToInventory(v);
+  inventory[v.id] = (inventory[v.id] || 0) + 1;
 
   const r = rarity(v.odds);
 
@@ -902,39 +884,42 @@ function finish(v){
     playCutscene(r);
   }
 
-  if (!best || v.odds > best.odds) {
-    best = {
-      id: v.id,
-      name: v.name,
-      odds: v.odds
-    };
-  
+  if(!best || v.odds > best.odds){
+    best = { name:v.id, odds:v.odds };
+
     const bestText = document.getElementById("best");
-    bestText.innerText = `${v.name} (1/${v.odds})`;
-  
+    bestText.innerText = `${best.name} (1/${best.odds})`;
+
     bestText.className = "";
-    bestText.classList.add("best-" + rarity(v.odds));
+    bestText.classList.add("best-" + rarity(best.odds));
   }
 
 save();
 render();
   
 }
+
+const cardUpgrades = {
+  theos: {
+    oldOdds: 10000,
+    newOdds: 100000
+  }
+};
+  
 /* INVENTORY */
 function render(){
   let inv = document.getElementById("inventory");
   inv.innerHTML = "";
 
   for(let v of viewers){
-    let data = inventory[v.id];
-    let owned = data?.count;
+    let owned = inventory[v.id];
 
     inv.innerHTML += `
   <div class="card ${owned ? rarity(v.odds) : "locked"}">
     
     ${owned ? `
       <img src="${v.image}">
-      <div>${v.name}</div>
+      <div>${v.id}</div>
       <div>1 in ${v.odds}</div>
       <div>x${owned}</div>
     ` : `
@@ -1140,11 +1125,7 @@ document.addEventListener("visibilitychange", () => {
     const final = weightedPick();
 
     rolls++;
-    if (!inventory[final.id]) {
-      inventory[final.id] = { count: 1, odds: final.odds };
-    } else {
-      inventory[final.id].count++;
-    }
+    inventory[final.name] = (inventory[final.name] || 0) + 1;
 
     if(!best || final.odds > best.odds){
       best = {
