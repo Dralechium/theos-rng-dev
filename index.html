@@ -720,7 +720,6 @@ function migrateInventoryCards() {
 
   for (const [id, count] of Object.entries(inventory)) {
 
-    // check if this card was replaced
     const newId = cardMigrations[id];
 
     if (newId) {
@@ -729,6 +728,10 @@ function migrateInventoryCards() {
       newInv[id] = count;
     }
   }
+
+  inventory = newInv;
+  save();
+}
 
 migrateInventoryCards();
 migrateOldSave();
