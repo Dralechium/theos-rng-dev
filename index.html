@@ -522,12 +522,11 @@ html, body {
     document.getElementById("inventoryPage").classList.add("active");
   }
 
-    // update active button
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    btn.classList.add("active");
-  
-    moveBlob(btn);
-  }
+  // update active button
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  btn.classList.add("active");
+
+  moveBlob(btn);
 
   inventory = newInv;
   save();
