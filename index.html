@@ -529,6 +529,25 @@ html, body {
   moveBlob(btn);
 }
 
+function migrateInventoryCards() {
+  const newInv = {};
+
+  for (const [id, count] of Object.entries(inventory)) {
+
+    // check if this card was replaced
+    const newId = cardMigrations[id];
+
+    if (newId) {
+      newInv[newId] = (newInv[newId] || 0) + count;
+    } else {
+      newInv[id] = count;
+    }
+  }
+
+  inventory = newInv;
+  save();
+}
+
 function moveBlob(btn){
   const blob = document.getElementById("blob");
 
@@ -665,6 +684,10 @@ const viewers = [
 
 const defaultViewer = viewers[viewers.length - 1];
 
+const cardMigrations = {
+  theosGMD: "taiago7" // oldId -> newId
+};
+
 /* RARITY */
 function rarity(o){
   if(o<=8) return "common";
@@ -676,6 +699,7 @@ function rarity(o){
 
 /* DATA */
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
+migrateInventoryCards();
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = JSON.parse(localStorage.getItem("best")) || null;
 
