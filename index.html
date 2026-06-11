@@ -680,17 +680,17 @@ let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
 const SAVE_VERSION = 2;
 let saveVersion = Number(localStorage.getItem("saveVersion") || 1);
 
-if(saveVersion < SAVE_VERSION){
-
+if (saveVersion < SAVE_VERSION) {
   const newInventory = {};
 
-  for(const v of viewers){
+  for (const v of viewers) {
+    const old = inventory[v.name];
 
-    // old saves used names
-    const count = inventory[v.name];
-
-    if(count){
-      newInventory[v.id] = count;
+    if (typeof old === "number") {
+      newInventory[v.id] = {
+        count: old,
+        odds: v.odds
+      };
     }
   }
 
@@ -699,6 +699,7 @@ if(saveVersion < SAVE_VERSION){
   localStorage.setItem("inv", JSON.stringify(inventory));
   localStorage.setItem("saveVersion", SAVE_VERSION);
 }
+
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = JSON.parse(localStorage.getItem("best")) || null;
 for (const v of viewers) {
@@ -881,10 +882,7 @@ function show(v){
 function finish(v){
 
   if (!inventory[v.id]) {
-    inventory[v.id] = {
-      count: 1,
-      odds: v.odds
-    };
+    inventory[v.id] = { count: 1, odds: v.odds };
   } else {
     inventory[v.id].count++;
   }
@@ -900,20 +898,18 @@ function finish(v){
     playCutscene(r);
   }
 
-  if(!best || v.id !== best.id || v.odds > best.odds){
-    best = { id: v.id, name: v.name, odds: v.odds };
-
+  if (!best || v.odds > best.odds) {
+    best = {
+      id: v.id,
+      name: v.name,
+      odds: v.odds
+    };
+  
     const bestText = document.getElementById("best");
-    const bestViewer = viewers.find(v => v.id === best.id);
-
-    if(bestViewer){
-      bestText.innerText = `${bestViewer.name} (1/${bestViewer.odds})`;
-      bestText.className = "";
-      bestText.classList.add("best-" + rarity(bestViewer.odds));
-    }
-
+    bestText.innerText = `${v.name} (1/${v.odds})`;
+  
     bestText.className = "";
-    bestText.classList.add("best-" + rarity(best.odds));
+    bestText.classList.add("best-" + rarity(v.odds));
   }
 
 save();
