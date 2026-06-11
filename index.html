@@ -853,6 +853,13 @@ function migrateOldSave() {
 
 migrateOldSave();
 
+const cardUpgrades = {
+  theos: {
+    oldOdds: 10000,
+    newOdds: 100000
+  }
+};
+
 function migrateCardUpgrades() {
   for (const v of viewers) {
     const upgrade = cardUpgrades[v.id];
@@ -898,13 +905,6 @@ save();
 render();
   
 }
-
-const cardUpgrades = {
-  theos: {
-    oldOdds: 10000,
-    newOdds: 100000
-  }
-};
   
 /* INVENTORY */
 function render(){
