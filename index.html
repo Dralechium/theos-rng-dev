@@ -529,21 +529,6 @@ html, body {
   moveBlob(btn);
 }
 
-function migrateInventoryCards() {
-  const newInv = {};
-
-  for (const [id, count] of Object.entries(inventory)) {
-
-    // check if this card was replaced
-    const newId = cardMigrations[id];
-
-    if (newId) {
-      newInv[newId] = (newInv[newId] || 0) + count;
-    } else {
-      newInv[id] = count;
-    }
-  }
-
   inventory = newInv;
   save();
 }
@@ -700,7 +685,6 @@ function rarity(o){
 
 /* DATA */
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
-migrateInventoryCards();
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = JSON.parse(localStorage.getItem("best")) || null;
 
@@ -732,6 +716,24 @@ function pick(){
   return viewers[0];
 }
 
+function migrateInventoryCards() {
+  const newInv = {};
+
+  for (const [id, count] of Object.entries(inventory)) {
+
+    // check if this card was replaced
+    const newId = cardMigrations[id];
+
+    if (newId) {
+      newInv[newId] = (newInv[newId] || 0) + count;
+    } else {
+      newInv[id] = count;
+    }
+  }
+
+migrateInventoryCards();
+migrateOldSave();
+migrateCardUpgrades();
 /* ROLL */
 let running=false;
 let autoRoll = false;
@@ -876,8 +878,6 @@ function migrateOldSave() {
   inventory = newInv;
   save();
 }
-
-migrateOldSave();
 
 const cardUpgrades = {
   theos: {
