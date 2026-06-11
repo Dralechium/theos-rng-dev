@@ -544,7 +544,6 @@ function moveBlob(btn){
 }
 
 let autoRollStartTime = null;
-const SAVE_VERSION = 3;
   
 function spawnCardSparklesOn(el, rarityType){
 
@@ -682,113 +681,10 @@ function rarity(o){
   return "mythic";
 }
 
-function getDefaultSave() {
-  return {
-    version: SAVE_VERSION,
-    inventory: {},
-    rolls: 0,
-    best: null
-  };
-}
-
-function loadSave() {
-  let raw = localStorage.getItem("save");
-
-  if (!raw) return getDefaultSave();
-
-  let save;
-
-  try {
-    save = JSON.parse(raw);
-  } catch (e) {
-    console.warn("Corrupt save detected. Resetting.");
-    return getDefaultSave();
-  }
-
-  if (!save.version) {
-    save = migrateLegacySave(save);
-  }
-
-  return migrateToLatest(save);
-}
-
-function migrateLegacySave(old) {
-  return {
-    version: 1,
-    inventory: old.inv || old.inventory || {},
-    rolls: old.rolls || 0,
-    best: old.best || null
-  };
-}
-
-function migrateToLatest(save) {
-
-  while (save.version < SAVE_VERSION) {
-
-    switch (save.version) {
-
-      case 1:
-        save = migrateV1toV2(save);
-        break;
-
-      case 2:
-        save = migrateV2toV3(save);
-        break;
-    }
-
-    save.version++;
-  }
-
-  return save;
-}
-
-function migrateV1toV2(save) {
-
-  const cardMigrations = {
-    theosGMD: "taiago7",
-    spaceuk: "kazagd"
-  };
-
-  const newInv = {};
-
-  for (const [id, count] of Object.entries(save.inventory)) {
-
-    const newId = cardMigrations[id];
-
-    if (newId) {
-      newInv[newId] = (newInv[newId] || 0) + count;
-    } else {
-      newInv[id] = count;
-    }
-  }
-
-  save.inventory = newInv;
-
-  return save;
-}
-
-function migrateV2toV3(save) {
-  // safe placeholder for future upgrades
-  return save;
-}
-
-function saveGame() {
-  const save = {
-    version: SAVE_VERSION,
-    inventory,
-    rolls,
-    best
-  };
-
-  localStorage.setItem("save", JSON.stringify(save));
-}
-
 /* DATA */
-const saveData = loadSave();
-
-let inventory = saveData.inventory;
-let rolls = saveData.rolls;
-let best = saveData.best;
+let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
+let rolls = Number(localStorage.getItem("rolls")||0);
+let best = JSON.parse(localStorage.getItem("best")) || null;
 
 document.getElementById("rolls").innerText = rolls;
 
@@ -1059,13 +955,13 @@ function render(){
 }
 
 function save(){
-  saveGame();
+  localStorage.setItem("inv", JSON.stringify(inventory));
+  localStorage.setItem("rolls", rolls);
+  localStorage.setItem("best", JSON.stringify(best));
 }
 
 /* START */
 show(defaultViewer);
-
-save();   // ensures clean versioned save exists
 render();
 
 window.onload = () => {
@@ -1205,11 +1101,6 @@ window.playCutscene = function(type){
   }
 
   requestAnimationFrame(frame);
-};
-
-window.resetSave = function() {
-  localStorage.removeItem("save");
-  location.reload();
 };
 
 window.showCard = function(name){
