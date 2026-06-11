@@ -1134,6 +1134,10 @@ window.showCard = function(name){
   }
 };
 
+migrateInventoryCards();
+migrateOldSave();
+migrateCardUpgrades();
+
 document.addEventListener("visibilitychange", () => {
 
   if(!autoRoll) return;
