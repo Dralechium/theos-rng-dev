@@ -682,9 +682,18 @@ function rarity(o){
 }
 
 /* DATA */
+const SAVE_VERSION = 1;
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = JSON.parse(localStorage.getItem("best")) || null;
+
+const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
+
+if (savedVersion < SAVE_VERSION) {
+  localStorage.removeItem("inv");
+  localStorage.removeItem("rolls");
+  localStorage.removeItem("best");
+}
 
 document.getElementById("rolls").innerText = rolls;
 
@@ -719,13 +728,14 @@ function migrateInventoryCards() {
 
   for (const [id, count] of Object.entries(inventory)) {
 
-    const newId = cardMigrations[id];
+    let targetId = id;
 
-    if (newId) {
-      newInv[newId] = (newInv[newId] || 0) + count;
-    } else {
-      newInv[id] = count;
+    // 1. handle explicit ID migration map
+    if (cardMigrations[id]) {
+      targetId = cardMigrations[id];
     }
+
+    newInv[targetId] = (newInv[targetId] || 0) + count;
   }
 
   inventory = newInv;
@@ -958,6 +968,7 @@ function save(){
   localStorage.setItem("inv", JSON.stringify(inventory));
   localStorage.setItem("rolls", rolls);
   localStorage.setItem("best", JSON.stringify(best));
+  localStorage.setItem("saveVersion", SAVE_VERSION);
 }
 
 /* START */
