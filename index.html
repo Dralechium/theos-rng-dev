@@ -878,14 +878,18 @@ function show(v){
   display.querySelectorAll(".cardSparkle").forEach(e => e.remove());
 }
 
-/* FINISH */
-function finish(v){
-
+function addToInventory(v){
   if (!inventory[v.id]) {
     inventory[v.id] = { count: 1, odds: v.odds };
   } else {
     inventory[v.id].count++;
   }
+}
+
+/* FINISH */
+function finish(v){
+
+  addToInventory(v);
 
   const r = rarity(v.odds);
 
