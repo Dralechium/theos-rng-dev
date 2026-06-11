@@ -642,27 +642,29 @@ const sparkleGap = 20; // 👈 change this to increase/decrease spacing
 
 /* VIEWERS */
 const viewers = [
-  {name:"duckwithsunnies", odds:2, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6ef3b0ef-bc0b-463d-a3d9-1f2a646a534f-profile_image-70x70.png"},
-  {name:"ilee_ez", odds:4, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/e0efcfce-7516-4589-9bcf-5c6ec63a8a76-profile_image-70x70.png"},
-  {name:"ztatsukii_", odds:8, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/4fd5ffe5-6799-4f4e-b470-f1420f1caee4-profile_image-70x70.jpeg"},
-  {name:"Shunkohh", odds:16, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/2a1751b4-a94c-4c97-9fa7-3168b6a2768f-profile_image-70x70.png"},
-  {name:"41unc", odds:25, image:"https://cdn.discordapp.com/avatars/820266716537815040/396a0ee557222daf4c58ed975aad5e59.webp?size=1024"},
-  {name:"pushlastname", odds:32, image:"https://cdn.discordapp.com/avatars/822151571637796875/fc174b0bbdb419e6a3d486e8b1134bb0.webp?size=1024"},
-  {name:"AbyssFDK", odds:50, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/84332b83-3f01-4ce3-9860-abb0a671fb5c-profile_image-70x70.jpeg"},
-  {name:"naksug10", odds:64, image:"https://cdn.discordapp.com/avatars/1136703121582723072/e69e04c9bb9c22705e4c3374b8a1f4dd.webp?size=1024"},
-  {name:"gmdbon", odds:100, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/45da4302-a7a6-4bc8-a320-f7ebac40d84f-profile_image-70x70.png"},
-  {name:"2_b_a_d", odds:128, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/ff6f1754-b22e-46ef-a8da-f36c8f97d1a7-profile_image-70x70.png"},
-  {name:"ktheunknown1", odds:256, image:"https://cdn.discordapp.com/avatars/1229398489021284466/03b7cbe420aa50b347306b699851a437.webp?size=1024"},
-  {name:"midgatal", odds:500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/bc185f86-30d2-4422-b547-5f4e3c504d54-profile_image-70x70.png"},
-  {name:"ChefGmd", odds:512, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/f6dfdec2-1ad0-4757-aa3c-c061cc5cab69-profile_image-70x70.png"},
-  {name:"IVDrale", odds:1000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6e71f426-65ca-4914-b6e8-0e5499f032cb-profile_image-70x70.png"},
-  {name:"Gamingbyte444", odds:1024, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/a6d961bf-ece5-4464-9b1e-5a326cfebe94-profile_image-70x70.png"},
-  {name:"Christ_Is_God", odds:5000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/98b31c09-fa8b-4318-88bd-ef8a0443b772-profile_image-70x70.png"},
-  {name:"spaceuk", odds:7500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/66d53358-962a-4f18-8917-12a2d220e0ef-profile_image-70x70.png"},
-  {name:"theosGMD", odds:10000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/0ffc8233-6b32-411e-bfbd-4167c09cc2a2-profile_image-70x70.png"}
+  {id:"duckwithsunnies", name:"duckwithsunnies", odds:2, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6ef3b0ef-bc0b-463d-a3d9-1f2a646a534f-profile_image-70x70.png"},
+  {id:"ilee_ez", name:"ilee_ez", odds:4, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/e0efcfce-7516-4589-9bcf-5c6ec63a8a76-profile_image-70x70.png"},
+  {id:"ztatsukii_", name:"ztatsukii_", odds:8, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/4fd5ffe5-6799-4f4e-b470-f1420f1caee4-profile_image-70x70.jpeg"},
+  {id:"Shunkohh", name:"Shunkohh", odds:16, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/2a1751b4-a94c-4c97-9fa7-3168b6a2768f-profile_image-70x70.png"},
+  {id:"41unc", name:"41unc", odds:25, image:"https://cdn.discordapp.com/avatars/820266716537815040/396a0ee557222daf4c58ed975aad5e59.webp?size=1024"},
+  {id:"pushlastname", name:"pushlastname", odds:32, image:"https://cdn.discordapp.com/avatars/822151571637796875/fc174b0bbdb419e6a3d486e8b1134bb0.webp?size=1024"},
+  {id:"AbyssFDK", name:"AbyssFDK", odds:50, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/84332b83-3f01-4ce3-9860-abb0a671fb5c-profile_image-70x70.jpeg"},
+  {id:"naksug10", name:"naksug10", odds:64, image:"https://cdn.discordapp.com/avatars/1136703121582723072/e69e04c9bb9c22705e4c3374b8a1f4dd.webp?size=1024"},
+  {id:"gmdbon", name:"gmdbon", odds:100, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/45da4302-a7a6-4bc8-a320-f7ebac40d84f-profile_image-70x70.png"},
+  {id:"2_b_a_d", name:"2_b_a_d", odds:128, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/ff6f1754-b22e-46ef-a8da-f36c8f97d1a7-profile_image-70x70.png"},
+  {id:"ktheunknown1", name:"ktheunknown1", odds:256, image:"https://cdn.discordapp.com/avatars/1229398489021284466/03b7cbe420aa50b347306b699851a437.webp?size=1024"},
+  {id:"midgatal", name:"midgatal", odds:500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/bc185f86-30d2-4422-b547-5f4e3c504d54-profile_image-70x70.png"},
+  {id:"ChefGmd", name:"ChefGmd", odds:512, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/f6dfdec2-1ad0-4757-aa3c-c061cc5cab69-profile_image-70x70.png"},
+  {id:"IVDrale", name:"IVDrale", odds:1000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6e71f426-65ca-4914-b6e8-0e5499f032cb-profile_image-70x70.png"},
+  {id:"Gamingbyte444", name:"Gamingbyte444", odds:1024, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/a6d961bf-ece5-4464-9b1e-5a326cfebe94-profile_image-70x70.png"},
+  {id:"Christ_Is_God", name:"Christ_Is_God", odds:5000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/98b31c09-fa8b-4318-88bd-ef8a0443b772-profile_image-70x70.png"},
+  {id:"kazagd", name:"kazagd", odds:7500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/7725062e-c231-406a-b000-34973ce973a2-profile_image-70x70.png"},
+  {id:"taiago7", :"taiago7", odds:10000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/133319eb-8b72-40c2-89f5-4bcf9c2dfa24-profile_image-70x70.png"},
+  {id:"spaceuk", name:"spaceuk", odds:50000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/66d53358-962a-4f18-8917-12a2d220e0ef-profile_image-70x70.png"},
+  {id:"theosGMD", name:"theosGMD", odds:100000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/0ffc8233-6b32-411e-bfbd-4167c09cc2a2-profile_image-70x70.png"}
 ];
 
-const defaultViewer = viewers[viewers.length - 1];
+const defaultViewer = viewers.find(v => v.name === "theosGMD");
 
 /* RARITY */
 function rarity(o){
@@ -675,6 +677,28 @@ function rarity(o){
 
 /* DATA */
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
+const SAVE_VERSION = 2;
+let saveVersion = Number(localStorage.getItem("saveVersion") || 1);
+
+if(saveVersion < SAVE_VERSION){
+
+  const newInventory = {};
+
+  for(const v of viewers){
+
+    // old saves used names
+    const count = inventory[v.name];
+
+    if(count){
+      newInventory[v.id] = count;
+    }
+  }
+
+  inventory = newInventory;
+
+  localStorage.setItem("inv", JSON.stringify(inventory));
+  localStorage.setItem("saveVersion", SAVE_VERSION);
+}
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = JSON.parse(localStorage.getItem("best")) || null;
 
@@ -834,7 +858,7 @@ function show(v){
 /* FINISH */
 function finish(v){
 
-  inventory[v.name] = (inventory[v.name] || 0) + 1;
+  inventory[v.id] = (inventory[v.id] || 0) + 1;
 
   const r = rarity(v.odds);
 
@@ -867,7 +891,7 @@ function render(){
   inv.innerHTML = "";
 
   for(let v of viewers){
-    let owned = inventory[v.name];
+    let owned = inventory[v.id];
 
     inv.innerHTML += `
   <div class="card ${owned ? rarity(v.odds) : "locked"}">
@@ -1080,7 +1104,7 @@ document.addEventListener("visibilitychange", () => {
     const final = weightedPick();
 
     rolls++;
-    inventory[final.name] = (inventory[final.name] || 0) + 1;
+    inventory[final.id] = (inventory[final.id] || 0) + 1;
 
     if(!best || final.odds > best.odds){
       best = {
