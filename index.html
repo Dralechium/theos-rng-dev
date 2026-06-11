@@ -1136,7 +1136,11 @@ document.addEventListener("visibilitychange", () => {
     const final = weightedPick();
 
     rolls++;
-    inventory[final.id] = (inventory[final.id] || 0) + 1;
+    if (!inventory[final.id]) {
+      inventory[final.id] = { count: 1, odds: final.odds };
+    } else {
+      inventory[final.id].count++;
+    }
 
     if(!best || final.odds > best.odds){
       best = {
