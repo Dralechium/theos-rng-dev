@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<title>theos RNG</title>
+
+<style>
+body{
+  margin:0;
+  font-family: 'Orbitron', Arial, sans-serif;
+  background:#0b0b0b;
+  color:white;
+}
+
+#cutsceneOverlay{
+  position: fixed;
+  inset: 0;
+  background: black;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9998;
+}
+
+#redLight{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+
+  opacity: 0;
+  transform: scale(0.2);
+
+  background: radial-gradient(
+    circle at center,
+    var(--cutscene-color-bright) 0%,
+    var(--cutscene-color-mid) 20%,
+    rgba(0,0,0,0) 55%
+  );
+
+  filter: blur(2px);
+  will-change: transform, opacity;
+}
+
+#cutscene{
+  position: fixed;
+  inset: 0;
+  background: black;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+@keyframes sparklePulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.9) rotate(0deg);
+    opacity: 0.7;
+  }
+
+  50% {
+    transform: translate(-50%, -50%) scale(1.25) rotate(15deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(0.9) rotate(0deg);
+    opacity: 0.7;
+  }
+}
+
+@keyframes flashPurple {
+  0% { opacity: 0; background: black; }
+  20% { opacity: 1; background: #7a00ff; }
+  40% { opacity: 0; }
+  60% { opacity: 1; background: #7a00ff; }
+  100% { opacity: 0; }
+}
+
+@keyframes flashRed {
+  0% { opacity: 0; background: black; }
+  25% { opacity: 1; background: red; }
+  50% { opacity: 0; }
+  75% { opacity: 1; background: darkred; }
+  100% { opacity: 0; }
+}
+
+@keyframes sparkleFloat{
+  0%{
+    opacity:0;
+    transform:scale(0);
+  }
+
+  15%{
+    opacity:1;
+  }
+
+  100%{
+    opacity:0;
+    transform:
+      translate(var(--dx), var(--dy))
+      scale(1.4)
+      rotate(180deg);
+  }
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* HEADER + HUD */
+.header{
+  text-align:center;
+  padding:15px;
+  background:#111;
+  border-bottom:2px solid #222;
+}
+
+.nav{
+  display: flex;
+  justify-content: center;
+  margin: 18px auto 22px auto;
+
+  width: 100%;
+}
+
+.nav-inner{
+  position: relative;
+  display: flex;
+
+  border: 2px solid #42ff29;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.35);
+
+  height: 56px;
+
+  width: max-content;
+  min-width: 260px;
+
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.nav-frame{
+  display:flex;
+  justify-content:center;
+  margin-top:10px;
+}
+
+.tab{
+  font-family: 'Orbitron', Arial, sans-serif;
+  height: 100%;
+  padding: 0 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: transparent;
+  border: none;
+  color: white;
+  z-index: 2;
+}
+
+.blob{
+  position: absolute;
+  top: 0;
+  bottom: 0;
+
+  left: 0;
+
+  height: 100%;
+  border-radius: 999px;
+
+  background: #42ff29;
+  opacity: 0.25;
+
+  z-index: 1;
+
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.page{
+  display:none;
+}
+
+.page.active{
+  display:block;
+}
+
+.header h1{
+  color:#42ff29;
+  text-shadow:0 0 10px #42ff29;
+  margin:0;
+  justify-self:center;
+}
+
+.best-common{
+  color:gray;
+}
+
+.best-rare{
+  color:#4da6ff;
+}
+
+.best-epic{
+  color:#b84dff;
+}
+
+.best-legendary{
+  color:gold;
+}
+
+.best-mythic{
+  color:#ff4d4d;
+}  
+
+.hud{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  padding:10px 20px;
+}
+
+.hudBox{
+  padding:12px 18px;
+  border-radius:12px;
+  background:#1a1a1a;
+  border:2px solid #42ff29;
+  font-size:16px;
+  font-weight:bold;
+  box-shadow:0 0 10px rgba(66,255,41,0.3);
+  user-select:none;
+  pointer-events:none;
+}
+
+#rollBox{
+  color:#42ff29;
+  justify-self:start;
+}
+
+#bestBox{
+  justify-self:end;
+}
+/* CENTER AREA */
+.roll-area{
+  text-align:center;
+  padding:20px 30px 0 30px;
+  transform: translateY(-10px);
+}
+
+/* ROLL DISPLAY */
+#display{
+  width:360px;
+  margin:15px auto 18px auto;
+  padding:20px;
+  border-radius:15px;
+  overflow:visible;
+  background:#181818;
+  transition: opacity 0.2s ease;
+  position: relative;
+}
+
+#display img{
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  object-fit:cover;
+}
+
+#name{
+  font-size:28px;
+  font-weight:bold;
+  margin-top:10px;
+}
+
+#odds{ color:#aaa; }
+
+.rollBtn{
+  padding:18px 70px;
+  font-size:20px;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+
+  background:#42ff29;
+  color:#0b0b0b;
+
+  font-family: 'Orbitron', Arial, sans-serif;
+
+  margin-top:15px;
+
+  box-shadow:0 0 12px rgba(66,255,41,0.4);
+  transition:0.2s ease;
+}
+
+.rollBtn:hover{
+  transform: scale(1.05);
+  box-shadow:0 0 18px rgba(66,255,41,0.7);
+}
+
+.autoRollBtn{
+  padding:18px 70px;
+  font-size:20px;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+
+  background:#555;
+  color:white;
+
+  font-family:'Orbitron', Arial, sans-serif;
+
+  margin-top:12px;
+
+  box-shadow:0 0 12px rgba(255,255,255,0.15);
+  transition:0.2s ease;
+}
+
+.autoRollBtn:hover{
+  transform:scale(1.05);
+  box-shadow:0 0 18px rgba(255,255,255,0.25);
+}
+
+.autoOn{
+  color:#42ff29;
+}
+
+.autoOff{
+  color:#ff4040;
+}
+
+/* INVENTORY */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:10px;
+  padding:20px;
+}
+
+.card{
+  border-radius:12px;
+  text-align:center;
+  padding:10px;
+  position:relative;
+  overflow:hidden;
+  transition:0.3s;
+  background:#1a1a1a;
+
+  /* 🔥 ADD THIS */
+  min-height:170px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:6px;
+}
+
+.card img{
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  margin:0 auto;
+}
+
+.cardSparkle{
+  position:absolute;
+  pointer-events:none;
+  filter: drop-shadow(0 0 6px currentColor);
+
+  transform: translate(-50%, -50%) scale(1);
+  animation: sparklePulse 1.6s ease-in-out infinite;
+}
+
+.cardSparkle::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:currentColor;
+
+  /* 4-point star shape */
+  clip-path: polygon(
+    50% 0%,
+    62% 38%,
+    100% 50%,
+    62% 62%,
+    50% 100%,
+    38% 62%,
+    0% 50%,
+    38% 38%
+  );
+
+  box-shadow:
+    0 0 8px currentColor,
+    0 0 16px currentColor;
+}
+
+/* rarity glow + color themes */
+.card.common{ box-shadow:0 0 8px gray; background:linear-gradient(145deg,#1a1a1a,#2a2a2a); }
+.card.rare{ box-shadow:0 0 12px #4da6ff; background:linear-gradient(145deg,#0b1a2a,#123a66); }
+.card.epic{ box-shadow:0 0 18px #b84dff; background:linear-gradient(145deg,#1a0b2a,#3a1266); }
+.card.legendary{ box-shadow:0 0 25px gold; background:linear-gradient(145deg,#2a220b,#665012); }
+.card.mythic{ box-shadow:0 0 35px red; background:linear-gradient(145deg,#2a0b0b,#661212); }
+
+/* PREVIEW SCREEN RARITIES */
+#display.common{ background:linear-gradient(145deg,#1a1a1a,#2a2a2a); box-shadow:0 0 15px gray; }
+#display.rare{ background:linear-gradient(145deg,#0b1a2a,#123a66); box-shadow:0 0 20px #4da6ff; }
+#display.epic{ background:linear-gradient(145deg,#1a0b2a,#3a1266); box-shadow:0 0 25px #b84dff; }
+#display.legendary{ background:linear-gradient(145deg,#2a220b,#665012); box-shadow:0 0 30px gold; }
+#display.mythic{ background:linear-gradient(145deg,#2a0b0b,#661212); box-shadow:0 0 40px red; }
+
+/* locked */
+.locked img{
+  filter:blur(8px) grayscale(1);
+  transform:scale(1.1);
+}
+
+.card{
+  position:relative;
+}
+
+.card:hover{
+  transform: scale(1.03);
+}
+
+/* LOCKED STATE (NEW SYSTEM) */
+.card.locked{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  position:relative;
+}
+
+.card.locked img{
+  filter:blur(8px) grayscale(1);
+  transform:scale(1.1);
+}
+
+/* big ??? in center */
+.lockedText{
+  font-size:28px;
+  font-weight:bold;
+  letter-spacing:2px;
+}
+
+/* "Locked" text under it */
+.lockedSub{
+  font-size:14px;
+  color:#aaa;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+
+  <div class="hud">
+
+    <div class="hudBox" id="rollBox">
+      Rolls: <span id="rolls">0</span>
+    </div>
+
+    <h1>theos RNG</h1>
+
+    <div class="hudBox" id="bestBox">
+      <span>Best:</span>
+      <span id="best">None</span>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- NAV (tabs) -->
+<div class="nav">
+
+  <div class="nav-inner">
+
+    <div class="blob" id="blob"></div>
+
+    <button class="tab active" onclick="showPage('roll', this)">Roll</button>
+    <button class="tab" onclick="showPage('inventory', this)">Inventory</button>
+
+  </div>
+
+</div>
+
+<!-- GAME -->
+<div id="rollPage" class="page active">
+
+  <div class="roll-area">
+
+    <div id="display">
+      <img id="img" src="https://i.pravatar.cc/150">
+      <div id="name">Press Roll</div>
+      <div id="odds"></div>
+    </div>
+
+    <button class="rollBtn" onclick="roll()">ROLL</button>
+    <button class="autoRollBtn" onclick="toggleAutoRoll()" id="autoRollBtn">
+      AUTOROLL: <span id="autoRollState" class="autoOff">OFF</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- INVENTORY -->
+<div id="inventoryPage" class="page">
+  <div id="inventory" class="grid"></div>
+</div>
+<script>
+  function showPage(page, btn){
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+
+  if(page === "roll"){
+    document.getElementById("rollPage").classList.add("active");
+  } else {
+    document.getElementById("inventoryPage").classList.add("active");
+  }
+
+  // update active button
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  btn.classList.add("active");
+
+  moveBlob(btn);
+}
+
+function moveBlob(btn){
+  const blob = document.getElementById("blob");
+
+  const parent = btn.parentElement;
+  const parentRect = parent.getBoundingClientRect();
+  const btnRect = btn.getBoundingClientRect();
+
+  const left = btnRect.left - parentRect.left;
+
+  blob.style.width = btn.offsetWidth + "px";
+  blob.style.left = left + "px";
+}
+
+let autoRollStartTime = null;
+  
+function spawnCardSparklesOn(el, rarityType){
+
+  el.querySelectorAll(".cardSparkle").forEach(e => e.remove());
+  
+  const colors = {
+    rare: "#4da6ff",
+    epic: "#b84dff",
+    legendary: "#ffd700",
+    mythic: "#ff3030"
+  };
+
+  const color = colors[rarityType];
+  if(!color) return;
+
+  const rect = el.getBoundingClientRect();
+
+  const corners = [
+    { x: 0, y: rect.height },      // bottom-left
+    { x: rect.width, y: 0 }        // top-right
+  ];
+
+  for (const corner of corners) {
+
+    const isBottomLeft = (corner.x === 0 && corner.y === rect.height);
+    const isTopRight   = (corner.x === rect.width && corner.y === 0);
+
+    for (let i = 0; i < 2; i++) {
+
+      const s = document.createElement("div");
+      s.className = "cardSparkle";
+      s.style.color = color;
+
+      const isBig = (i === 0);
+
+      const size = isBig ? 56 : 32;
+      s.style.width = size + "px";
+      s.style.height = size + "px";
+
+      let x = corner.x;
+      let y = corner.y;
+
+      let jitterX = 0;
+      let jitterY = 0;
+
+      // DEFAULT
+      if (!isBottomLeft && !isTopRight) {
+        jitterX = isBig ? -2 : 3;
+        jitterY = isBig ? 3 : -2;
+      }
+
+      // 🔥 bottom-left (your original rule)
+      else if (isBottomLeft) {
+        if (isBig) {
+          jitterX = 0;
+          jitterY = 0;
+        } else {
+          jitterX = 10;
+          jitterY = -10;
+        }
+      }
+
+      // 🔥 TOP-RIGHT (SWAPPED big/small behavior)
+      else if (isTopRight) {
+        if (isBig) {
+          // BIG now goes INWARD
+          jitterX = -10;
+          jitterY = 10;
+        } else {
+          // SMALL sits on edge
+          jitterX = 0;
+          jitterY = 0;
+        }
+      }
+
+      s.style.left = (x + jitterX) + "px";
+      s.style.top = (y + jitterY) + "px";
+
+      const offset = isTopRight
+        ? (isBig ? sparkleGap / 2 : -sparkleGap / 2)
+        : (isBig ? -sparkleGap / 2 : sparkleGap / 2);
+      
+      const dx = (corner.x === 0 ? -1 : 1) * offset;
+      const dy = (corner.y === 0 ? -1 : 1) * offset;
+
+      s.style.setProperty("--dx", dx + "px");
+      s.style.setProperty("--dy", dy + "px");
+
+      s.style.zIndex = isBig ? 2 : 1;
+
+      el.appendChild(s);
+    }
+  }
+}
+
+const sparkleGap = 20; // 👈 change this to increase/decrease spacing
+
+/* VIEWERS */
+const viewers = [
+  {name:"duckwithsunnies", odds:2, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6ef3b0ef-bc0b-463d-a3d9-1f2a646a534f-profile_image-70x70.png"},
+  {name:"ilee_ez", odds:4, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/e0efcfce-7516-4589-9bcf-5c6ec63a8a76-profile_image-70x70.png"},
+  {name:"ztatsukii_", odds:8, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/4fd5ffe5-6799-4f4e-b470-f1420f1caee4-profile_image-70x70.jpeg"},
+  {name:"Shunkohh", odds:16, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/2a1751b4-a94c-4c97-9fa7-3168b6a2768f-profile_image-70x70.png"},
+  {name:"41unc", odds:25, image:"https://cdn.discordapp.com/avatars/820266716537815040/396a0ee557222daf4c58ed975aad5e59.webp?size=1024"},
+  {name:"pushlastname", odds:32, image:"https://cdn.discordapp.com/avatars/822151571637796875/fc174b0bbdb419e6a3d486e8b1134bb0.webp?size=1024"},
+  {name:"AbyssFDK", odds:50, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/84332b83-3f01-4ce3-9860-abb0a671fb5c-profile_image-70x70.jpeg"},
+  {name:"naksug10", odds:64, image:"https://cdn.discordapp.com/avatars/1136703121582723072/e69e04c9bb9c22705e4c3374b8a1f4dd.webp?size=1024"},
+  {name:"gmdbon", odds:100, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/45da4302-a7a6-4bc8-a320-f7ebac40d84f-profile_image-70x70.png"},
+  {name:"2_b_a_d", odds:128, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/ff6f1754-b22e-46ef-a8da-f36c8f97d1a7-profile_image-70x70.png"},
+  {name:"ktheunknown1", odds:256, image:"https://cdn.discordapp.com/avatars/1229398489021284466/03b7cbe420aa50b347306b699851a437.webp?size=1024"},
+  {name:"midgatal", odds:500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/bc185f86-30d2-4422-b547-5f4e3c504d54-profile_image-70x70.png"},
+  {name:"ChefGmd", odds:512, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/f6dfdec2-1ad0-4757-aa3c-c061cc5cab69-profile_image-70x70.png"},
+  {name:"IVDrale", odds:1000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6e71f426-65ca-4914-b6e8-0e5499f032cb-profile_image-70x70.png"},
+  {name:"Gamingbyte444", odds:1024, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/a6d961bf-ece5-4464-9b1e-5a326cfebe94-profile_image-70x70.png"},
+  {name:"Christ_Is_God", odds:5000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/98b31c09-fa8b-4318-88bd-ef8a0443b772-profile_image-70x70.png"},
+  {name:"spaceuk", odds:7500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/66d53358-962a-4f18-8917-12a2d220e0ef-profile_image-70x70.png"},
+  {name:"theosGMD", odds:10000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/0ffc8233-6b32-411e-bfbd-4167c09cc2a2-profile_image-70x70.png"}
+];
+
+const defaultViewer = viewers[viewers.length - 1];
+
+/* RARITY */
+function rarity(o){
+  if(o<=8) return "common";
+  if(o<=50) return "rare";
+  if(o<=256) return "epic";
+  if(o<=1000) return "legendary";
+  return "mythic";
+}
+
+/* DATA */
+let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
+let rolls = Number(localStorage.getItem("rolls")||0);
+let best = JSON.parse(localStorage.getItem("best")) || null;
+
+document.getElementById("rolls").innerText = rolls;
+
+const bestText = document.getElementById("best");
+
+if(best){
+  bestText.innerText = `${best.name} (1/${best.odds})`;
+  bestText.className = "";
+  bestText.classList.add("best-" + rarity(best.odds));
+} else {
+  bestText.innerText = "None";
+  bestText.className = "";
+}
+/* RNG */
+function pick(){
+  // weighted selection so commons appear more often during flicker
+  const weights = viewers.map(v => 1 / v.odds);
+
+  let total = weights.reduce((a,b)=>a+b,0);
+  let r = Math.random() * total;
+
+  for(let i = 0; i < viewers.length; i++){
+    r -= weights[i];
+    if(r <= 0) return viewers[i];
+  }
+
+  return viewers[0];
+}
+
+/* ROLL */
+let running=false;
+let autoRoll = false;
+let autoRollTimer = null;
+
+function toggleAutoRoll(){
+
+  autoRoll = !autoRoll;
+
+  const state = document.getElementById("autoRollState");
+
+  if(autoRoll){
+
+    state.textContent = "ON";
+    state.className = "autoOn";
+
+    autoRollStartTime = Date.now();
+
+    if(!running){
+      roll();
+    }
+
+  }else{
+
+    state.textContent = "OFF";
+    state.className = "autoOff";
+
+    autoRollStartTime = null;
+  }
+}
+
+function weightedPick(){
+  let total = 0;
+
+  for (let v of viewers) {
+    total += 1 / v.odds;
+  }
+
+  let r = Math.random() * total;
+
+  let acc = 0;
+  for (let v of viewers) {
+    acc += 1 / v.odds;
+    if (r <= acc) return v;
+  }
+}
+
+function roll(){
+    if (document.hidden) {
+  
+    let final = weightedPick();
+  
+    rolls++;
+    document.getElementById("rolls").innerText = rolls;
+  
+    show(final);
+    finish(final);
+  
+    if(autoRoll){
+      setTimeout(roll, 3000);
+    }
+  
+    return;
+  }
+  
+  if(running) return;
+  running = true;
+
+  rolls++;
+  document.getElementById("rolls").innerText = rolls;
+
+  const start = performance.now();
+  const rollDuration = 3000;
+
+  function visualPick(){
+    return viewers[Math.floor(Math.random() * viewers.length)];
+  }
+
+  function frame(t){
+    let p = (t - start) / rollDuration;
+    if(p > 1) p = 1;
+
+    let delay = 35 + (220 * p);
+
+    if(p < 1){
+      let v = visualPick();
+      show(v);
+
+      setTimeout(() => {
+        requestAnimationFrame(frame);
+      }, delay);
+
+    } else {
+      let final = weightedPick();
+      show(final);
+      finish(final);
+      setTimeout(() => {
+        running = false;
+
+        if(autoRoll){
+          roll();
+        }
+      }, 50);
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+/* SHOW */
+function show(v){
+  const display = document.getElementById("display");
+
+  document.getElementById("img").src = v.image;
+  document.getElementById("name").innerText = v.name;
+  document.getElementById("odds").innerText = "1 in " + v.odds;
+
+  display.className = "";
+  const r = rarity(v.odds);
+  display.classList.add(r);
+
+  // 🔥 IMPORTANT: remove old sparkles whenever card changes
+  display.querySelectorAll(".cardSparkle").forEach(e => e.remove());
+}
+
+/* FINISH */
+function finish(v){
+
+  inventory[v.name] = (inventory[v.name] || 0) + 1;
+
+  const r = rarity(v.odds);
+
+  if(r !== "common"){
+    const display = document.getElementById("display");
+    spawnCardSparklesOn(display, r);
+  }
+
+  if(r === "legendary" || r === "mythic"){
+    playCutscene(r);
+  }
+
+  if(!best || v.odds > best.odds){
+    best = { name:v.name, odds:v.odds };
+
+    const bestText = document.getElementById("best");
+    bestText.innerText = `${best.name} (1/${best.odds})`;
+
+    bestText.className = "";
+    bestText.classList.add("best-" + rarity(best.odds));
+  }
+
+save();
+render();
+  
+}
+/* INVENTORY */
+function render(){
+  let inv = document.getElementById("inventory");
+  inv.innerHTML = "";
+
+  for(let v of viewers){
+    let owned = inventory[v.name];
+
+    inv.innerHTML += `
+  <div class="card ${owned ? rarity(v.odds) : "locked"}">
+    
+    ${owned ? `
+      <img src="${v.image}">
+      <div>${v.name}</div>
+      <div>1 in ${v.odds}</div>
+      <div>x${owned}</div>
+    ` : `
+      <div class="lockedText">???</div>
+      <div class="lockedSub">Locked</div>
+    `}
+    
+  </div>
+`;
+  }
+}
+
+function save(){
+  localStorage.setItem("inv", JSON.stringify(inventory));
+  localStorage.setItem("rolls", rolls);
+  localStorage.setItem("best", JSON.stringify(best));
+}
+
+/* START */
+show(defaultViewer);
+render();
+
+window.onload = () => {
+  const firstTab = document.querySelector(".tab");
+  moveBlob(firstTab);
+};
+
+window.cutscene = function(type){
+  // normalize input
+  type = type.toLowerCase();
+
+  // get all viewers of that rarity
+  const pool = viewers.filter(v => rarity(v.odds) === type);
+
+  if(pool.length === 0){
+    console.log("No cards found for rarity:", type);
+    return;
+  }
+
+  // pick random card
+  const v = pool[Math.floor(Math.random() * pool.length)];
+
+  // show visually ONLY (no inventory, no rolls)
+  show(v);
+
+  // trigger cutscene
+  playCutscene(type);
+};
+
+function easeInExpo(t){
+  return t === 0 ? 0 : Math.pow(2, 10 * (t - 1));
+}
+
+window.playCutscene = function(type){
+  const overlay = document.getElementById("cutsceneOverlay");
+  const red = document.getElementById("redLight");
+
+  if(type === "legendary"){
+    red.style.setProperty(
+      "--cutscene-color-bright",
+      "rgba(255,215,0,0.95)"
+    );
+
+    red.style.setProperty(
+      "--cutscene-color-mid",
+      "rgba(255,215,0,0.5)"
+    );
+  }
+  else{
+    // mythic
+    red.style.setProperty(
+      "--cutscene-color-bright",
+      "rgba(255,0,0,0.95)"
+    );
+
+    red.style.setProperty(
+      "--cutscene-color-mid",
+      "rgba(255,0,0,0.5)"
+    );
+  }
+
+  const display = document.getElementById("display");
+
+  const start = performance.now();
+
+  const FADE_TO_BLACK = 300;
+  const BLACK_HOLD = 700;
+
+  const RED_START = FADE_TO_BLACK + BLACK_HOLD;
+  const RED_DURATION = 3500;
+
+  overlay.style.transition = "none";
+  red.style.transition = "none";
+
+  overlay.style.opacity = 0;
+  red.style.opacity = 0;
+  red.style.transform = "scale(0.2)";
+
+  display.style.opacity = 0;
+
+  function frame(now){
+    const t = now - start;
+
+    /* 1. fade to black */
+    if(t < FADE_TO_BLACK){
+      overlay.style.opacity = t / FADE_TO_BLACK;
+    }
+
+    /* 2. hold black */
+    else if(t < RED_START){
+      overlay.style.opacity = 1;
+    }
+
+    /* 3. red fade in (SMOOTH, not instant) */
+    else if(t < RED_START + 400){
+      overlay.style.opacity = 1;
+
+      const p = (t - RED_START) / 400;
+
+      red.style.opacity = p;
+      red.style.transform = `scale(${0.2 + p * 0.4})`;
+    }
+
+    /* 4. exponential expansion (NO SHAPE SWITCH) */
+    else if(t < RED_START + RED_DURATION){
+      const p = (t - (RED_START + 400)) / (RED_DURATION - 400);
+
+      const e = easeInExpo(p);
+
+      red.style.opacity = 1;
+
+      // keep uniform scaling base, then breathing stretch
+      const base = 0.6 + e * 8;
+
+      // subtle distortion only
+      const stretch = 1 + (Math.sin(e * Math.PI) * 0.15);
+
+      red.style.transform = `scale(${base * stretch})`;
+    }
+
+    /* 5. full screen burst */
+    else if(t < RED_START + RED_DURATION + 200){
+      red.style.opacity = 1;
+      red.style.transform = "scale(25, 15)";
+    }
+
+    /* 6. fade out + reveal instantly */
+    else{
+      red.style.opacity = 0;
+      overlay.style.opacity = 0;
+
+      display.style.opacity = 1;
+      return;
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  requestAnimationFrame(frame);
+};
+
+window.showCard = function(name){
+
+  const v = viewers.find(x =>
+    x.name.trim().toLowerCase() === name.trim().toLowerCase()
+  );
+
+  if(!v){
+    console.log("Card not found:", name);
+    return;
+  }
+
+  const r = rarity(v.odds);
+
+  show(v);
+
+  const display = document.getElementById("display");
+  display.style.opacity = 1;
+
+  if(r !== "common"){
+    spawnCardSparklesOn(display, r);
+  }
+
+  if(r === "legendary" || r === "mythic"){
+    playCutscene(r);
+  }
+};
+
+document.addEventListener("visibilitychange", () => {
+
+  if(!autoRoll) return;
+
+  if(document.hidden) return;
+
+  const now = Date.now();
+
+  const elapsed = now - autoRollStartTime;
+
+  const missedRolls = Math.floor(elapsed / 3000);
+
+  for(let i = 0; i < missedRolls; i++){
+
+    const final = weightedPick();
+
+    rolls++;
+    inventory[final.name] = (inventory[final.name] || 0) + 1;
+
+    if(!best || final.odds > best.odds){
+      best = {
+        name: final.name,
+        odds: final.odds
+      };
+    }
+  }
+
+  autoRollStartTime = now;
+
+  save();
+  render();
+
+  if(!running){
+    roll();
+  }
+});  
+
+</script>
+<div id="cutsceneOverlay"></div>
+<div id="redLight"></div>
+</div>
+</body>
+</html>
