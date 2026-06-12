@@ -654,8 +654,9 @@ const viewers = [
   {id:"gmdbon", name:"gmdbon", odds:100, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/45da4302-a7a6-4bc8-a320-f7ebac40d84f-profile_image-70x70.png"},
   {id:"2_b_a_d", name:"2_b_a_d", odds:128, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/ff6f1754-b22e-46ef-a8da-f36c8f97d1a7-profile_image-70x70.png"},
   {id:"ktheunknown1", name:"ktheunknown1", odds:256, image:"https://cdn.discordapp.com/avatars/1229398489021284466/03b7cbe420aa50b347306b699851a437.webp?size=1024"},
-  {id:"midgatal", name:"midgatal", odds:500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/bc185f86-30d2-4422-b547-5f4e3c504d54-profile_image-70x70.png"},
+  {id:"twkn9", name:"twkn9", odds:500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/612062a1-b7cb-4e92-8229-80823c12b31f-profile_image-70x70.png"},
   {id:"ChefGmd", name:"ChefGmd", odds:512, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/f6dfdec2-1ad0-4757-aa3c-c061cc5cab69-profile_image-70x70.png"},
+  {id:"midgatal", name:"midgatal", odds:750, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/bc185f86-30d2-4422-b547-5f4e3c504d54-profile_image-70x70.png"},
   {id:"IVDrale", name:"IVDrale", odds:1000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6e71f426-65ca-4914-b6e8-0e5499f032cb-profile_image-70x70.png"},
   {id:"Gamingbyte444", name:"Gamingbyte444", odds:1024, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/a6d961bf-ece5-4464-9b1e-5a326cfebe94-profile_image-70x70.png"},
   {id:"Christ_Is_God", name:"Christ_Is_God", odds:5000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/98b31c09-fa8b-4318-88bd-ef8a0443b772-profile_image-70x70.png"},
@@ -669,15 +670,16 @@ const defaultViewer = viewers[viewers.length - 1];
 
 const cardMigrations = {
   theosGMD: "taiago7",// oldId -> newId
+  midgatal: "twkn9",
   spaceuk: "kazagd"
 };
 
 /* RARITY */
 function rarity(o){
-  if(o<=8) return "common";
-  if(o<=50) return "rare";
-  if(o<=256) return "epic";
-  if(o<=1000) return "legendary";
+  if(o<=16) return "common";
+  if(o<=64) return "rare";
+  if(o<=500) return "epic";
+  if(o<=1024) return "legendary";
   return "mythic";
 }
 
@@ -1141,7 +1143,14 @@ window.showCard = function(name){
   }
 };
 
-migrateInventoryCards();
+const migrationVersion =
+  Number(localStorage.getItem("migrationVersion") || 0);
+
+if (migrationVersion < 1) {
+  migrateInventoryCards();
+  localStorage.setItem("migrationVersion", 1);
+}
+
 migrateOldSave();
 migrateCardUpgrades();
 
@@ -1162,7 +1171,7 @@ document.addEventListener("visibilitychange", () => {
     const final = weightedPick();
 
     rolls++;
-    inventory[final.name] = (inventory[final.name] || 0) + 1;
+    inventory[final.id] = (inventory[final.id] || 0) + 1;
 
     if(!best || final.odds > best.odds){
       best = {
