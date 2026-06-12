@@ -724,8 +724,6 @@ function pick(){
   return viewers[0];
 }
 
-const SAVE_VERSION = 2;
-
 function runMigrations() {
   const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
 
@@ -749,6 +747,8 @@ function runMigrations() {
   localStorage.setItem("inv", JSON.stringify(migrated));
   localStorage.setItem("saveVersion", SAVE_VERSION);
 }
+
+const SAVE_VERSION = 2;
 
 /* ROLL */
 let running=false;
