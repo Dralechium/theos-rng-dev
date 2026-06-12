@@ -684,9 +684,20 @@ function rarity(o){
 }
 
 /* DATA */
+const SAVE_VERSION = 1;
+const MIGRATION_FLAG_KEY = "migration_v" + SAVE_VERSION + "_done";
+
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = JSON.parse(localStorage.getItem("best")) || null;
+
+const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
+
+if (savedVersion < SAVE_VERSION) {
+  localStorage.removeItem("inv");
+  localStorage.removeItem("rolls");
+  localStorage.removeItem("best");
+}
 
 document.getElementById("rolls").innerText = rolls;
 
@@ -716,30 +727,23 @@ function pick(){
   return viewers[0];
 }
 
-const SAVE_VERSION = 2;
+function migrateInventoryCards() {
+  const newInv = {};
 
-function runMigrations() {
-  const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
+  for (const [id, count] of Object.entries(inventory)) {
 
-  if (savedVersion >= SAVE_VERSION) return;
+    let targetId = id;
 
-  let inv = JSON.parse(localStorage.getItem("inv") || "{}");
+    // 1. handle explicit ID migration map
+    if (cardMigrations[id]) {
+      targetId = cardMigrations[id];
+    }
 
-  const migrated = {};
-
-  const map = {
-    theosGMD: "taiago7",
-    midgatal: "twkn9",
-    spaceuk: "kazagd"
-  };
-
-  for (const [id, count] of Object.entries(inv)) {
-    const newId = map[id] || id;
-    migrated[newId] = (migrated[newId] || 0) + count;
+    newInv[targetId] = (newInv[targetId] || 0) + count;
   }
 
-  localStorage.setItem("inv", JSON.stringify(migrated));
-  localStorage.setItem("saveVersion", SAVE_VERSION);
+  inventory = newInv;
+  save();
 }
 
 /* ROLL */
@@ -895,13 +899,12 @@ const cardUpgrades = {
 };
 
 function migrateCardUpgrades() {
+  // Only run ONCE during migration phase
   for (const v of viewers) {
     const upgrade = cardUpgrades[v.id];
     if (!upgrade) continue;
 
-    // no need to transfer inventory if id unchanged
-    // but we ensure odds update is consistent everywhere
-    if (v.odds !== upgrade.newOdds && v.odds === upgrade.oldOdds) {
+    if (v.odds === upgrade.oldOdds) {
       v.odds = upgrade.newOdds;
     }
   }
@@ -944,7 +947,7 @@ function render(){
   inv.innerHTML = "";
 
   for(let v of viewers){
-    let owned = inventory[v.id] || 0;
+    let owned = inventory[v.id];
 
     inv.innerHTML += `
   <div class="card ${owned ? rarity(v.odds) : "locked"}">
@@ -1141,9 +1144,18 @@ window.showCard = function(name){
   }
 };
 
-runMigrations();
-migrateOldSave();
-migrateCardUpgrades();
+const migrationDone = localStorage.getItem(MIGRATION_FLAG_KEY);
+
+if (!migrationDone) {
+
+  console.log("Running one-time migration...");
+
+  migrateInventoryCards();
+  migrateOldSave();
+  migrateCardUpgrades();
+
+  localStorage.setItem(MIGRATION_FLAG_KEY, "1");
+}
 
 document.addEventListener("visibilitychange", () => {
 
@@ -1162,7 +1174,7 @@ document.addEventListener("visibilitychange", () => {
     const final = weightedPick();
 
     rolls++;
-    inventory[final.id] = (inventory[final.id] || 0) + 1;
+    inventory[final.name] = (inventory[final.name] || 0) + 1;
 
     if(!best || final.odds > best.odds){
       best = {
