@@ -688,14 +688,6 @@ let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = JSON.parse(localStorage.getItem("best")) || null;
 
-const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
-
-if (savedVersion < SAVE_VERSION) {
-  localStorage.removeItem("inv");
-  localStorage.removeItem("rolls");
-  localStorage.removeItem("best");
-}
-
 document.getElementById("rolls").innerText = rolls;
 
 const bestText = document.getElementById("best");
@@ -724,6 +716,8 @@ function pick(){
   return viewers[0];
 }
 
+const SAVE_VERSION = 2;
+
 function runMigrations() {
   const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
 
@@ -747,8 +741,6 @@ function runMigrations() {
   localStorage.setItem("inv", JSON.stringify(migrated));
   localStorage.setItem("saveVersion", SAVE_VERSION);
 }
-
-const SAVE_VERSION = 2;
 
 /* ROLL */
 let running=false;
