@@ -701,16 +701,6 @@ if (savedVersion < SAVE_VERSION) {
 
 document.getElementById("rolls").innerText = rolls;
 
-const bestText = document.getElementById("best");
-
-if(best){
-  bestText.innerText = `${best.name} (1/${best.odds})`;
-  bestText.className = "";
-  bestText.classList.add("best-" + rarity(best.odds));
-} else {
-  bestText.innerText = "None";
-  bestText.className = "";
-}
 /* RNG */
 function pick(){
   // weighted selection so commons appear more often during flicker
@@ -941,6 +931,20 @@ render();
   
 }
 
+function updateBestUI() {
+  const bestText = document.getElementById("best");
+
+  if (!best) {
+    bestText.innerText = "None";
+    bestText.className = "";
+    return;
+  }
+
+  bestText.innerText = `${best.name} (1/${best.odds})`;
+  bestText.className = "";
+  bestText.classList.add("best-" + rarity(best.odds));
+}
+
 function recalcBest() {
   let newBest = null;
 
@@ -957,6 +961,7 @@ function recalcBest() {
   }
 
   best = newBest;
+  updateBestUI();
 }
 
 /* INVENTORY */
@@ -1176,6 +1181,9 @@ if (!migrationDone) {
 
   localStorage.setItem(MIGRATION_FLAG_KEY, "1");
 }
+
+recalcBest();
+updateBestUI();
 
 document.addEventListener("visibilitychange", () => {
 
