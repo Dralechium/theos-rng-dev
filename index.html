@@ -1248,19 +1248,20 @@ async function submitAuth(){
       email,
       password
     });
-
+    
     if(error) return alert(error.message);
-
+    
     currentUser = data.user;
     
-    await supabase
-      .from("profiles")
-      .update({
-        rolls,
-        best_name: best?.name || null,
-        best_odds: best?.odds || null,
-        inventory
-      })
+    // CREATE row (NOT update)
+    await supabase.from("profiles").insert({
+      id: currentUser.id,
+      username,
+      rolls,
+      best_name: best?.name || null,
+      best_odds: best?.odds || null,
+      inventory
+    });
       .eq("id", currentUser.id);
     
     await loadCloudData();
@@ -1297,7 +1298,7 @@ async function loadCloudData(){
 
 async function save(){
 
-  // ALWAYS save locally first
+  // local first
   localStorage.setItem("inv", JSON.stringify(inventory));
   localStorage.setItem("rolls", rolls);
   localStorage.setItem("best", JSON.stringify(best));
@@ -1305,21 +1306,23 @@ async function save(){
 
   if (document.getElementById("leaderboardPage").classList.contains("active")) {
     window.loadLeaderboard();
-    }
   }
-  
-  // ❌ ONLY sync to cloud if user is fully ACTIVE
-  if(currentUser && window.cloudReady){
 
-    supabase.from("profiles")
+  // cloud sync
+  if(currentUser && window.cloudReady){
+    const { error } = await supabase
+      .from("profiles")
       .update({
-        rolls: rolls,
+        rolls,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
-        inventory: inventory
+        inventory
       })
       .eq("id", currentUser.id);
+
+    if(error) console.log("SAVE ERROR:", error);
   }
+}
 
 /* START */
 async function init(){
