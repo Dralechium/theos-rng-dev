@@ -400,7 +400,7 @@ html, body {
   <div id="leaderboard"></div>
 </div>
 
-async function loadLeaderboard(){
+window.loadLeaderboard = async function(){
   const { data } = await supabase
     .from("profiles")
     .select("*")
@@ -426,7 +426,7 @@ async function loadLeaderboard(){
   });
 
   document.getElementById("leaderboard").innerHTML = html;
-}
+};
 
 /* rarity glow + color themes */
 .card.common{ box-shadow:0 0 8px gray; background:linear-gradient(145deg,#1a1a1a,#2a2a2a); }
@@ -1357,7 +1357,11 @@ if (!migrationDone) {
 
 recalcBest();
 updateBestUI();
-loadLeaderboard();
+window.addEventListener("load", () => {
+  if(typeof loadLeaderboard === "function"){
+    loadLeaderboard();
+  }
+});
 
 document.addEventListener("visibilitychange", () => {
 
