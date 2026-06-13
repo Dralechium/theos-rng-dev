@@ -51,29 +51,6 @@ body{
   z-index: 9999;
 }
 
-#leaderboardTable{
-  max-width:1000px;
-  margin:20px auto;
-}
-
-.lbRow{
-  display:grid;
-  grid-template-columns:
-    80px
-    1.5fr
-    1fr
-    1.5fr;
-
-  padding:12px;
-
-  border-bottom:1px solid #333;
-}
-
-.lbHeader{
-  color:#42ff29;
-  font-weight:bold;
-}
-
 @keyframes sparklePulse {
   0% {
     transform: translate(-50%, -50%) scale(0.9) rotate(0deg);
@@ -257,47 +234,6 @@ html, body {
   pointer-events:none;
 }
 
-
-.authModal{
-  position:fixed;
-  inset:0;
-
-  background:rgba(0,0,0,.7);
-
-  display:none;
-  justify-content:center;
-  align-items:center;
-
-  z-index:10000;
-}
-
-.authCard{
-  width:400px;
-
-  background:#111;
-
-  border:2px solid #42ff29;
-
-  border-radius:16px;
-
-  padding:30px;
-
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
-
-.authCard input{
-  padding:12px;
-
-  border-radius:8px;
-
-  border:none;
-
-  background:#1d1d1d;
-  color:white;
-}
-
 #rollBox{
   color:#42ff29;
   justify-self:start;
@@ -311,44 +247,6 @@ html, body {
   text-align:center;
   padding:20px 30px 0 30px;
   transform: translateY(-10px);
-}
-
-#authButtons{
-  display:flex;
-  gap:10px;
-  justify-self:end;
-}
-
-.authLoginBtn{
-  background:#42ff29;
-  color:black;
-
-  border:none;
-  border-radius:10px;
-
-  padding:10px 18px;
-
-  font-family:Orbitron;
-  cursor:pointer;
-}
-
-.authSignupBtn{
-  background:#444;
-  color:white;
-
-  border:none;
-  border-radius:10px;
-
-  padding:10px 18px;
-
-  font-family:Orbitron;
-  cursor:pointer;
-}
-
-#rollSection{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
 }
 
 /* ROLL DISPLAY */
@@ -553,7 +451,6 @@ html, body {
 }
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -563,31 +460,15 @@ html, body {
 
   <div class="hud">
 
-      <div id="rollSection">
-
-      <div class="hudBox" id="rollBox">
-        Rolls: <span id="rolls">0</span>
-      </div>
-    
-      <div class="hudBox" id="bestBox">
-        Best:
-        <span id="best">None</span>
-      </div>
-    
+    <div class="hudBox" id="rollBox">
+      Rolls: <span id="rolls">0</span>
     </div>
 
     <h1>theos RNG</h1>
 
-    <div id="authButtons">
-    
-      <button id="loginBtn" class="authLoginBtn">
-        Login
-      </button>
-    
-      <button id="signupBtn" class="authSignupBtn">
-        Sign Up
-      </button>
-    
+    <div class="hudBox" id="bestBox">
+      <span>Best:</span>
+      <span id="best">None</span>
     </div>
 
   </div>
@@ -601,17 +482,8 @@ html, body {
 
     <div class="blob" id="blob"></div>
 
-    <button class="tab active" onclick="showPage('roll',this)">
-      Roll
-    </button>
-    
-    <button class="tab" onclick="showPage('inventory',this)">
-      Inventory
-    </button>
-    
-    <button class="tab" onclick="showPage('leaderboard',this)">
-      Leaderboard
-    </button>
+    <button class="tab active" onclick="showPage('roll', this)">Roll</button>
+    <button class="tab" onclick="showPage('inventory', this)">Inventory</button>
 
   </div>
 
@@ -640,36 +512,14 @@ html, body {
 <div id="inventoryPage" class="page">
   <div id="inventory" class="grid"></div>
 </div>
-<div id="leaderboardPage" class="page">
-
-  <div id="leaderboardTable"></div>
-
-</div>
 <script>
   function showPage(page, btn){
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
 
   if(page === "roll"){
-  
-    document
-      .getElementById("rollPage")
-      .classList.add("active");
-  
-  }
-  else if(page === "inventory"){
-  
-    document
-      .getElementById("inventoryPage")
-      .classList.add("active");
-  
-  }
-  else{
-  
-    document
-      .getElementById("leaderboardPage")
-      .classList.add("active");
-  
-    loadLeaderboard();
+    document.getElementById("rollPage").classList.add("active");
+  } else {
+    document.getElementById("inventoryPage").classList.add("active");
   }
 
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
@@ -835,74 +685,19 @@ function rarity(o){
 
 /* DATA */
 const SAVE_VERSION = 1;
-const SUPABASE_URL = "https://fbrhajuyjematnzgddec.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZicmhhanV5amVtYXRuemdkZGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNDU0NjcsImV4cCI6MjA5NjkyMTQ2N30.KQa8fszD-jwB2jmncq9Qcpf_Qn5vQLl9PxWJM03aqWs";
-
-window.supabaseClient = window.supabaseClient ||
-  window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-  );
-
-const supabase = window.supabaseClient;
-
-let currentUser = null;
 const MIGRATION_FLAG_KEY = "migration_v" + SAVE_VERSION + "_done";
 
-const SAVE_KEY = "theos_rng_save";
+let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
+let rolls = Number(localStorage.getItem("rolls")||0);
+let best = null;
 
-function migrateLegacySave(){
+const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
 
-  if(localStorage.getItem(SAVE_KEY)){
-    return;
-  }
-
-  const oldInv =
-    JSON.parse(localStorage.getItem("inv") || "{}");
-
-  const oldRolls =
-    Number(localStorage.getItem("rolls") || 0);
-
-  const oldBest =
-    JSON.parse(localStorage.getItem("best") || "null");
-
-  const migrated = {
-    version: SAVE_VERSION,
-    rolls: oldRolls,
-    inventory: oldInv,
-    best: oldBest
-  };
-
-  localStorage.setItem(
-    SAVE_KEY,
-    JSON.stringify(migrated)
-  );
+if (savedVersion < SAVE_VERSION) {
+  localStorage.removeItem("inv");
+  localStorage.removeItem("rolls");
+  localStorage.removeItem("best");
 }
-
-function loadSave(){
-
-  const raw = localStorage.getItem(SAVE_KEY);
-
-  if(!raw){
-    return structuredClone(DEFAULT_SAVE);
-  }
-
-  try{
-    return JSON.parse(raw);
-  }catch{
-    return structuredClone(DEFAULT_SAVE);
-  }
-}
-
-migrateLegacySave();
-let saveData = loadSave();
-
-let inventory = saveData.inventory || {};
-let rolls = saveData.rolls || 0;
-let best = saveData.best || null;
-
-const SAVE_KEY = "theos_rng_save";
-const SAVE_VERSION = 1;
 
 document.getElementById("rolls").innerText = rolls;
 
@@ -1196,14 +991,10 @@ function render(){
 }
 
 function save(){
-  saveData = {
-    version: SAVE_VERSION,
-    rolls,
-    inventory,
-    best
-  };
-
-  localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+  localStorage.setItem("inv", JSON.stringify(inventory));
+  localStorage.setItem("rolls", rolls);
+  localStorage.setItem("best", JSON.stringify(best));
+  localStorage.setItem("saveVersion", SAVE_VERSION);
 }
 
 /* START */
@@ -1431,240 +1222,9 @@ document.addEventListener("visibilitychange", () => {
   }
 });  
 
-/* =========================
-   AUTH SYSTEM (CLEAN)
-========================= */
-
-let authMode = "login";
-
-/* open login modal */
-function openLogin() {
-  authMode = "login";
-  authTitle.textContent = "Login";
-  authUsername.style.display = "none";
-  authModal.style.display = "flex";
-}
-
-/* open signup modal */
-function openSignup() {
-  authMode = "signup";
-  authTitle.textContent = "Create Account";
-  authUsername.style.display = "block";
-  authModal.style.display = "flex";
-}
-
-/* attach button handlers */
-loginBtn.onclick = openLogin;
-signupBtn.onclick = openSignup;
-
-/* main submit handler */
-authSubmit.onclick = async () => {
-
-  const email = authEmail.value.trim();
-  const password = authPassword.value.trim();
-  const username = authUsername.value.trim();
-
-  if (!email || !password) {
-    alert("Email and password required");
-    return;
-  }
-
-  /* =====================
-     SIGN UP FLOW
-  ===================== */
-  if (authMode === "signup") {
-
-    const result = await supabase.auth.signUp({
-      email,
-      password
-    });
-
-    if (result.error) {
-      alert(result.error.message);
-      return;
-    }
-
-    const user = result.data.user;
-
-    await supabase
-      .from("players")
-      .insert({
-        id: user.id,
-        username: username || "Player"
-      });
-
-    currentUser = user;
-
-    await mergeLocalSave();
-
-    alert("Account created & logged in!");
-  }
-
-  /* =====================
-     LOGIN FLOW
-  ===================== */
-  else {
-
-    const result = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (result.error) {
-      alert(result.error.message);
-      return;
-    }
-
-    currentUser = result.data.user;
-
-    await mergeLocalSave();
-
-    alert("Logged in!");
-  }
-};
-
-/* =========================
-   CLOUD SAVE MERGE
-========================= */
-async function mergeLocalSave() {
-
-  const { data, error } = await supabase
-    .from("players")
-    .select("*")
-    .eq("id", currentUser.id)
-    .single();
-
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  const mergedRolls = (data.rolls || 0) + rolls;
-
-  const mergedInventory = structuredClone(data.inventory || {});
-
-  for (const id in inventory) {
-    mergedInventory[id] =
-      (mergedInventory[id] || 0) + inventory[id];
-  }
-
-  let cloudBestOdds = data.best_odds || 0;
-  let cloudBestCard = data.best_card;
-
-  if (best && best.odds > cloudBestOdds) {
-    cloudBestOdds = best.odds;
-    cloudBestCard = best.name;
-  }
-
-  await supabase
-    .from("players")
-    .update({
-      rolls: mergedRolls,
-      inventory: mergedInventory,
-      best_card: cloudBestCard,
-      best_odds: cloudBestOdds
-    })
-    .eq("id", currentUser.id);
-}
-
-async function loadLeaderboard(){
-
-  const { data, error } =
-    await supabase
-      .from("leaderboard")
-      .select("*")
-      .limit(100);
-
-  if(error){
-    console.error(error);
-    return;
-  }
-
-  const table =
-    document.getElementById(
-      "leaderboardTable"
-    );
-
-  table.innerHTML = `
-    <div class="lbRow lbHeader">
-      <div>#</div>
-      <div>Player</div>
-      <div>Rolls</div>
-      <div>Best Card</div>
-    </div>
-  `;
-
-  data.forEach((player,index)=>{
-
-    const rarityClass =
-      rarity(player.best_odds || 0);
-
-    table.innerHTML += `
-      <div class="lbRow">
-
-        <div>
-          ${index + 1}
-        </div>
-
-        <div>
-          ${player.username}
-        </div>
-
-        <div>
-          ${Number(player.rolls).toLocaleString()}
-        </div>
-
-        <div class="best-${rarityClass}">
-          ${player.best_card || "None"}
-          ${
-            player.best_odds
-              ? `(1 in ${player.best_odds})`
-              : ""
-          }
-        </div>
-
-      </div>
-    `;
-  });
-}
-
 </script>
 <div id="cutsceneOverlay"></div>
 <div id="redLight"></div>
-</div>
-<div id="authModal" class="authModal">
-
-  <div class="authCard">
-
-    <h2 id="authTitle">
-      Login
-    </h2>
-
-    <input
-      id="authEmail"
-      type="email"
-      placeholder="Email"
-    >
-
-    <input
-      id="authPassword"
-      type="password"
-      placeholder="Password"
-    >
-
-    <input
-      id="authUsername"
-      type="text"
-      placeholder="Username"
-      style="display:none"
-    >
-
-    <button id="authSubmit">
-      Continue
-    </button>
-
-  </div>
-
 </div>
 </body>
 </html>
