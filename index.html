@@ -816,7 +816,7 @@ function migrateInventoryCards() {
     newInv[targetId] = (newInv[targetId] || 0) + count;
   }
 
-  inventory = newInv;
+  inventory = inventory; // leave as-is
   save();
 }
 
@@ -1150,9 +1150,14 @@ async function submitAuth(){
     if(error) return alert(error.message);
 
     currentUser = data.user;
-    await loadCloudData();
+    
+    // 1. merge local progress INTO cloud first
     await mergeLocalToCloud();
-    renderAuthUI();   // 👈 ADD THIS
+    
+    // 2. then reload correct final cloud state
+    await loadCloudData();
+    
+    renderAuthUI();
     closeAuth();
 
   } else {
@@ -1175,35 +1180,9 @@ async function submitAuth(){
     });
     
     await loadCloudData();
-    await mergeLocalToCloud();
     renderAuthUI();   // 👈 ADD THIS
     closeAuth();
   }
-}
-
-async function mergeLocalToCloud(){
-
-  if(!currentUser) return;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", currentUser.id)
-    .single();
-
-  let newRolls = rolls + (profile.rolls || 0);
-
-  let newBest = profile.best_odds
-    ? (best && best.odds > profile.best_odds ? best : profile)
-    : best;
-
-  await supabase.from("profiles")
-    .update({
-      rolls: newRolls,
-      best_name: newBest?.name || null,
-      best_odds: newBest?.odds || null
-    })
-    .eq("id", currentUser.id);
 }
 
 async function loadCloudData(){
@@ -1215,7 +1194,7 @@ async function loadCloudData(){
 
   if(!data) return;
 
-  rolls = data.rolls || rolls;
+  rolls = data.rolls ?? 0;
 
   if(data.best_name){
     best = {
@@ -1233,19 +1212,34 @@ function save(){
   localStorage.setItem("rolls", rolls);
   localStorage.setItem("best", JSON.stringify(best));
   localStorage.setItem("saveVersion", SAVE_VERSION);
-    if(currentUser){
-    supabase.from("profiles").update({
-      rolls,
-      best_name: best?.name || null,
-      best_odds: best?.odds || null
-    }).eq("id", currentUser.id);
+
+  if(currentUser){
+    supabase.from("profiles")
+      .update({
+        rolls: rolls,
+        best_name: best?.name || null,
+        best_odds: best?.odds || null
+      })
+      .eq("id", currentUser.id);
   }
 }
-
 /* START */
-show(defaultViewer);
-render();
+async function init(){
+  const { data } = await supabase.auth.getSession();
 
+  if(data.session){
+    currentUser = data.session.user;
+    await loadCloudData();
+    renderAuthUI();
+  } else {
+    renderAuthUI();
+  }
+
+  show(defaultViewer);
+  render();
+}
+
+init();
 window.onload = () => {
   const firstTab = document.querySelector(".tab");
   moveBlob(firstTab);
