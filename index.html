@@ -742,12 +742,12 @@ let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = null;
 
-const savedVersion = Number(localStorage.getItem("saveVersion"));
+const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
 
-if (!savedVersion) {
-  localStorage.setItem("saveVersion", SAVE_VERSION);
-} else if (savedVersion < SAVE_VERSION) {
-  console.log("Migration needed, but NOT wiping save blindly.");
+if (savedVersion < SAVE_VERSION) {
+  localStorage.removeItem("inv");
+  localStorage.removeItem("rolls");
+  localStorage.removeItem("best");
 }
 
 document.getElementById("rolls").innerText = rolls;
@@ -1136,16 +1136,14 @@ async function logout(){
 
   if(currentUser){
     // push final state before logout
-    await supabase.from("profiles").insert({
-      id: currentUser.id,
-      username,
-      rolls,
-      best_name: best?.name || null,
-      best_odds: best?.odds || null,
-      inventory
-    });
-    
-    console.log("SAVE RESULT:", res);
+    await supabase.from("profiles")
+      .update({
+        rolls: rolls,
+        best_name: best?.name || null,
+        best_odds: best?.odds || null,
+        inventory: inventory
+      })
+      .eq("id", currentUser.id);
   }
   localStorage.removeItem(LOCAL_SYNC_FLAG);
   await supabase.auth.signOut();
@@ -1158,10 +1156,7 @@ async function logout(){
   rolls = 0;
   best = null;
 
-  localStorage.removeItem("inv");
-  localStorage.removeItem("rolls");
-  localStorage.removeItem("best");
-  localStorage.removeItem("saveVersion");
+  localStorage.clear();
 
   document.getElementById("rolls").innerText = "0";
   updateBestUI();
@@ -1179,6 +1174,7 @@ async function mergeLocalToCloud() {
   const { data } = await supabase
     .from("profiles")
     .select("*")
+    .eq("id", currentUser.id)
     .single();
 
   if (!data) return;
@@ -1200,13 +1196,12 @@ async function mergeLocalToCloud() {
 
   await supabase
     .from("profiles")
-    .upsert({
-      id: currentUser.id,
+    .update({
       rolls: mergedRolls,
       inventory: mergedInv
-    });
-  localStorage.setItem(LOCAL_SYNC_FLAG, "1");
- 
+    })
+    .eq("id", currentUser.id);
+
   // clear local AFTER merge
   localStorage.setItem("rolls", "0");
   localStorage.setItem("inv", JSON.stringify({}));
@@ -1224,7 +1219,7 @@ async function submitAuth(){
   const username = usernameInput.value;
 
   if(document.getElementById("authTitle").innerText === "Login"){
-    console.log("USER ID:", currentUser?.id);
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -1250,22 +1245,19 @@ async function submitAuth(){
       email,
       password
     });
-    
+
     if(error) return alert(error.message);
-    
+
     currentUser = data.user;
     
-    // CREATE row (NOT update)
-    await supabase
-      .from("profiles")
-      .upsert({
-        id: currentUser.id,
-        username,
-        rolls,
-        best_name: best?.name || null,
-        best_odds: best?.odds || null,
-        inventory
-      });
+    await supabase.from("profiles").upsert({
+      id: currentUser.id,
+      username,
+      rolls: rolls || 0,
+      best_name: best?.name || null,
+      best_odds: best?.odds || null,
+      inventory: inventory || {}
+    });
     
     await loadCloudData();
     renderAuthUI();   // 👈 ADD THIS
@@ -1277,16 +1269,13 @@ async function loadCloudData(){
   const { data } = await supabase
     .from("profiles")
     .select("*")
+    .eq("id", currentUser.id)
     .single();
 
   if(!data) return;
 
-  if (data.rolls != null) {
-    rolls = data.rolls;
-  }
-  if (data.inventory) {
-    inventory = data.inventory;
-  }
+  rolls = data.rolls ?? 0;
+  inventory = data.inventory ?? {};  // 🔥 IMPORTANT FIX
 
   if(data.best_name){
     best = {
@@ -1296,49 +1285,30 @@ async function loadCloudData(){
     updateBestUI();
   }
 
-  if (!data || typeof data !== "object") return;
-  if (!data.inventory) data.inventory = {};
-  
   document.getElementById("rolls").innerText = rolls;
   cloudReady = true;
   window.cloudReady = true;
-  window.loadLeaderboard?.();
 }
 
-async function save(){
+function save(){
 
-  // local first
+  // ALWAYS save locally first
   localStorage.setItem("inv", JSON.stringify(inventory));
   localStorage.setItem("rolls", rolls);
   localStorage.setItem("best", JSON.stringify(best));
   localStorage.setItem("saveVersion", SAVE_VERSION);
 
-  if (document.getElementById("leaderboardPage").classList.contains("active")) {
-    window.loadLeaderboard();
-  }
-
-  await supabase
-    .from("profiles")
-    .upsert({
-      id: currentUser.id,
-      rolls,
-      best_name: best?.name || null,
-      best_odds: best?.odds || null,
-      inventory
-    });
-  
-  // cloud sync
+  // ❌ ONLY sync to cloud if user is fully ACTIVE
   if(currentUser && window.cloudReady){
-    const { error } = await supabase
-      .from("profiles")
+
+    supabase.from("profiles")
       .update({
-        rolls,
+        rolls: rolls,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
-        inventory
+        inventory: inventory
       })
-
-    if(error) console.log("SAVE ERROR:", error);
+      .eq("id", currentUser.id);
   }
 }
 
