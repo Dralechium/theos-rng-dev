@@ -746,8 +746,6 @@ if(currentUser) {
   localStorage.setItem("saveVersion", SAVE_VERSION);
 } else {
 
-const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
-
 const savedVersion = Number(localStorage.getItem("saveVersion") || SAVE_VERSION);
 
 if (savedVersion < SAVE_VERSION) {
