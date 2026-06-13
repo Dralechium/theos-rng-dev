@@ -1144,7 +1144,7 @@ async function logout(){
         best_odds: best?.odds || null,
         inventory
       })
-      .eq("id", currentUser.id);
+      eq("id", currentUser.id);
     
     console.log("SAVE RESULT:", res);
   }
