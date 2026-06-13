@@ -1202,7 +1202,6 @@ async function mergeLocalToCloud() {
       rolls: mergedRolls,
       inventory: mergedInv
     })
-    .eq("id", currentUser.id);
 
   // clear local AFTER merge
   localStorage.setItem("rolls", "0");
