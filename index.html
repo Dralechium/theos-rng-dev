@@ -396,34 +396,6 @@ html, body {
     0 0 16px currentColor;
 }
 
-window.loadLeaderboard = async function(){
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .order("rolls", { ascending:false });
-
-  let html = "<h2>Leaderboard</h2>";
-
-  data.forEach((u, i) => {
-    html += `
-      <div style="display:flex;gap:20px;padding:6px;">
-        <div>#${i+1} ${u.username}</div>
-        <div>${u.rolls}</div>
-        <div style="color:${
-          u.best_odds <= 16 ? "gray" :
-          u.best_odds <= 64 ? "#4da6ff" :
-          u.best_odds <= 500 ? "#b84dff" :
-          u.best_odds <= 1024 ? "gold" : "red"
-        }">
-          ${u.best_name || "None"}
-        </div>
-      </div>
-    `;
-  });
-
-  document.getElementById("leaderboard").innerHTML = html;
-};
-
 /* rarity glow + color themes */
 .card.common{ box-shadow:0 0 8px gray; background:linear-gradient(145deg,#1a1a1a,#2a2a2a); }
 .card.rare{ box-shadow:0 0 12px #4da6ff; background:linear-gradient(145deg,#0b1a2a,#123a66); }
@@ -778,6 +750,35 @@ if (savedVersion < SAVE_VERSION) {
 
 document.getElementById("rolls").innerText = rolls;
 let currentUser = null;
+
+window.loadLeaderboard = async function(){
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .order("rolls", { ascending:false });
+
+  let html = "<h2>Leaderboard</h2>";
+
+  data.forEach((u, i) => {
+    html += `
+      <div style="display:flex;gap:20px;padding:6px;">
+        <div>#${i+1} ${u.username}</div>
+        <div>${u.rolls}</div>
+        <div style="color:${
+          u.best_odds <= 16 ? "gray" :
+          u.best_odds <= 64 ? "#4da6ff" :
+          u.best_odds <= 500 ? "#b84dff" :
+          u.best_odds <= 1024 ? "gold" : "red"
+        }">
+          ${u.best_name || "None"}
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById("leaderboard").innerHTML = html;
+};
+
 
 /* RNG */
 function pick(){
