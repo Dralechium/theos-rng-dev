@@ -1146,7 +1146,7 @@ async function logout(){
       })
       .eq("id", currentUser.id);
     
-    console.log("Save response:", res);
+    console.log("SAVE RESULT:", res);
   }
   localStorage.removeItem(LOCAL_SYNC_FLAG);
   await supabase.auth.signOut();
@@ -1222,7 +1222,7 @@ async function submitAuth(){
   const username = usernameInput.value;
 
   if(document.getElementById("authTitle").innerText === "Login"){
-
+    console.log("USER ID:", currentUser?.id);
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -1253,14 +1253,15 @@ async function submitAuth(){
 
     currentUser = data.user;
     
-    await supabase.from("profiles").upsert({
-      id: currentUser.id,
-      username,
-      rolls: rolls || 0,
-      best_name: best?.name || null,
-      best_odds: best?.odds || null,
-      inventory: inventory || {}
-    });
+    await supabase
+      .from("profiles")
+      .update({
+        rolls,
+        best_name: best?.name || null,
+        best_odds: best?.odds || null,
+        inventory
+      })
+      .eq("id", currentUser.id);
     
     await loadCloudData();
     renderAuthUI();   // 👈 ADD THIS
@@ -1291,9 +1292,10 @@ async function loadCloudData(){
   document.getElementById("rolls").innerText = rolls;
   cloudReady = true;
   window.cloudReady = true;
+  window.loadLeaderboard?.();
 }
 
-function save(){
+async function save(){
 
   // ALWAYS save locally first
   localStorage.setItem("inv", JSON.stringify(inventory));
@@ -1303,6 +1305,7 @@ function save(){
 
   if (document.getElementById("leaderboardPage").classList.contains("active")) {
     window.loadLeaderboard();
+    }
   }
   
   // ❌ ONLY sync to cloud if user is fully ACTIVE
