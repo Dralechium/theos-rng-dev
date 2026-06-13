@@ -555,7 +555,6 @@ html, body {
   <div id="leaderboard" style="padding:20px;"></div>
 </div>
 <script>
-  let currentUser = null;
   function showPage(page, btn){
 
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
@@ -741,32 +740,21 @@ let inventory = {};
 let rolls = 0;
 let best = null;
 
-if(currentUser) {
-  // cloud mode only — DO NOT touch localStorage for game state
-  localStorage.setItem("saveVersion", SAVE_VERSION);
-} else {
+if(!currentUser){
+  inventory = JSON.parse(localStorage.getItem("inv")||"{}");
+  rolls = Number(localStorage.getItem("rolls")||0);
+}
 
-const savedVersion = Number(localStorage.getItem("saveVersion") || SAVE_VERSION);
+const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
 
 if (savedVersion < SAVE_VERSION) {
-
-  // only migrate if data actually exists
-  const hasData =
-    localStorage.getItem("rolls") !== null ||
-    localStorage.getItem("inv") !== null;
-
-  if (hasData) {
-    console.log("Running safe migration...");
-    migrateInventoryCards();
-    migrateOldSave();
-    migrateCardUpgrades();
-    recalcBest();
-  }
-
-  localStorage.setItem("saveVersion", SAVE_VERSION);
+  localStorage.removeItem("inv");
+  localStorage.removeItem("rolls");
+  localStorage.removeItem("best");
 }
 
 document.getElementById("rolls").innerText = rolls;
+let currentUser = null;
 
 window.loadLeaderboard = async function(){
   const { data } = await supabase
@@ -833,7 +821,7 @@ function migrateInventoryCards() {
     newInv[targetId] = (newInv[targetId] || 0) + count;
   }
 
-  inventory = newInv;
+  inventory = inventory; // leave as-is
   save();
 }
 
@@ -1203,13 +1191,10 @@ async function submitAuth(){
 
     currentUser = data.user;
     
-    // STEP 1: load cloud FIRST (so we know baseline)
-    await loadCloudData();
-    
-    // STEP 2: merge local ON TOP of cloud (not reverse)
+    // 1. merge local progress INTO cloud first
     await mergeLocalToCloud();
     
-    // STEP 3: reload final merged state
+    // 2. then reload correct final cloud state
     await loadCloudData();
     
     renderAuthUI();
@@ -1269,17 +1254,15 @@ async function loadCloudData(){
 
   render();
   updateBestUI();
-  if (best) {
-    const v = viewers.find(x => x.id === best.name);
-    if (v) show(v);
-  }
 }
 
 function save(){
+  localStorage.setItem("inv", JSON.stringify(inventory));
+  localStorage.setItem("rolls", rolls);
+  localStorage.setItem("best", JSON.stringify(best));
+  localStorage.setItem("saveVersion", SAVE_VERSION);
 
   if(currentUser){
-
-    // ✅ CLOUD MODE (NO localStorage for game state)
     supabase.from("profiles")
       .update({
         rolls: rolls,
@@ -1288,28 +1271,21 @@ function save(){
         inventory: JSON.stringify(inventory)
       })
       .eq("id", currentUser.id);
-
-  } else {
-
-    // ✅ LOCAL MODE ONLY
-    localStorage.setItem("inv", JSON.stringify(inventory));
-    localStorage.setItem("rolls", rolls);
-    localStorage.setItem("best", JSON.stringify(best));
-    localStorage.setItem("saveVersion", SAVE_VERSION);
-
   }
 }
 /* START */
-
 async function init(){
   const { data } = await supabase.auth.getSession();
 
   if(data.session){
     currentUser = data.session.user;
     await loadCloudData();
+    renderAuthUI();
+  } else {
+    renderAuthUI();
   }
 
-  renderAuthUI();
+  show(defaultViewer);
   render();
 }
 
@@ -1507,19 +1483,6 @@ if (!migrationDone) {
 
 recalcBest();
 updateBestUI();
-// restore last visible card on refresh
-(function restoreLastView(){
-  if(best){
-    const v = viewers.find(x => x.id === best.name);
-    if(v) {
-      show(v);
-      return;
-    }
-  }
-
-  // fallback so it NEVER shows "Press Roll"
-  show(defaultViewer);
-})();
 window.addEventListener("load", () => {
   window.loadLeaderboard?.();
 });
@@ -1541,11 +1504,11 @@ document.addEventListener("visibilitychange", () => {
     const final = weightedPick();
 
     rolls++;
-    inventory[final.id] = (inventory[final.id] || 0) + 1;
+    inventory[final.name] = (inventory[final.name] || 0) + 1;
 
     if(!best || final.odds > best.odds){
       best = {
-        name: final.id,
+        name: final.name,
         odds: final.odds
       };
     }
@@ -1556,11 +1519,11 @@ document.addEventListener("visibilitychange", () => {
   save();
   render();
 
-    if(!running){
-      roll();
-    }
-  });  
-}
+  if(!running){
+    roll();
+  }
+});  
+
 </script>
 <div id="cutsceneOverlay"></div>
 <div id="redLight"></div>
