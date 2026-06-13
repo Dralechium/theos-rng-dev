@@ -1130,6 +1130,36 @@ async function logout(){
   renderAuthUI();
 }
 
+async function mergeLocalToCloud() {
+  if (!currentUser) return;
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
+    .single();
+
+  if (!data) return;
+
+  // local data
+  const localRolls = Number(localStorage.getItem("rolls") || 0);
+  const localInv = JSON.parse(localStorage.getItem("inv") || "{}");
+
+  // merge rules (simple version: add rolls, merge inventory counts)
+  const mergedRolls = (data.rolls || 0) + localRolls;
+
+  await supabase
+    .from("profiles")
+    .update({
+      rolls: mergedRolls
+    })
+    .eq("id", currentUser.id);
+
+  // optional: clear local after merge so it doesn't double-merge later
+  localStorage.setItem("rolls", "0");
+  localStorage.setItem("inv", JSON.stringify({}));
+}
+
 async function submitAuth(){
 
   const emailInput = document.getElementById("email");
