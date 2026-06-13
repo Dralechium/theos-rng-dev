@@ -597,7 +597,7 @@ window.loadLeaderboard = async function(){
 
   else if(page === "leaderboard"){
     document.getElementById("leaderboardPage").classList.add("active");
-    loadLeaderboard(); // refresh when opened
+    window.loadLeaderboard(); // refresh when opened
   }
 
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
@@ -1072,16 +1072,60 @@ function openLogin(){
   document.getElementById("authModal").style.display = "flex";
   document.getElementById("authTitle").innerText = "Login";
   document.getElementById("username").style.display = "none";
+  currentUser = data.user;
+  renderAuthUI();
 }
 
 function openSignup(){
   document.getElementById("authModal").style.display = "flex";
   document.getElementById("authTitle").innerText = "Sign Up";
   document.getElementById("username").style.display = "block";
+  currentUser = data.user;
+  renderAuthUI();
 }
 
 function closeAuth(){
   document.getElementById("authModal").style.display = "none";
+}
+
+function renderAuthUI(){
+  const box = document.getElementById("authButtons");
+
+  if(currentUser){
+    box.innerHTML = `
+      <div style="
+        color:#42ff29;
+        font-weight:bold;
+        display:flex;
+        align-items:center;
+        gap:10px;
+      ">
+        ${currentUser.email}
+
+        <button onclick="logout()" style="
+          background:#555;
+          border:none;
+          padding:8px 12px;
+          border-radius:6px;
+          color:white;
+          cursor:pointer;
+        ">
+          Logout
+        </button>
+      </div>
+    `;
+  } else {
+    box.innerHTML = `
+      <button onclick="openLogin()">Login</button>
+      <button onclick="openSignup()">Sign Up</button>
+    `;
+  }
+}
+
+async function logout(){
+  await supabase.auth.signOut();
+  currentUser = null;
+  renderAuthUI();
 }
 
 async function submitAuth(){
@@ -1382,9 +1426,7 @@ if (!migrationDone) {
 recalcBest();
 updateBestUI();
 window.addEventListener("load", () => {
-  if(typeof loadLeaderboard === "function"){
-    loadLeaderboard();
-  }
+  window.loadLeaderboard?.();
 });
 
 document.addEventListener("visibilitychange", () => {
