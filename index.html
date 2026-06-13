@@ -459,6 +459,14 @@ html, body {
 <script>
   const SUPABASE_URL = "https://qihjozufbsfgqnwsrjan.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpaGpvenVmYnNmZ3Fud3NyamFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNTI0NDksImV4cCI6MjA5NjkyODQ0OX0.-KTNEJ9xz7X4DPp-wxe-AhoOxslGMmXi_EB_DSn9qdg";
+  supabase.auth.getSession().then(({ data }) => {
+    currentUser = data.session?.user || null;
+    renderAuthUI();
+  
+    if (currentUser) {
+      loadCloudData();
+    }
+  });
 
   window.supabase = window.supabase.createClient(
     SUPABASE_URL,
@@ -765,12 +773,12 @@ window.loadLeaderboard = async function(){
         <div>#${i+1} ${u.username}</div>
         <div>${u.rolls}</div>
         <div style="color:${
-          u.best_odds <= 16 ? "gray" :
-          u.best_odds <= 64 ? "#4da6ff" :
-          u.best_odds <= 500 ? "#b84dff" :
-          u.best_odds <= 1024 ? "gold" : "red"
+          (u.best_odds ?? 999999) <= 16 ? "gray" :
+          (u.best_odds ?? 999999) <= 64 ? "#4da6ff" :
+          (u.best_odds ?? 999999) <= 500 ? "#b84dff" :
+          (u.best_odds ?? 999999) <= 1024 ? "gold" : "red"
         }">
-          ${u.best_name || "None"}
+          ${u.best_name ?? "None"}
         </div>
       </div>
     `;
@@ -1145,9 +1153,12 @@ async function submitAuth(){
     if(error) return alert(error.message);
 
     currentUser = data.user;
+    
     await loadCloudData();
     await mergeLocalToCloud();
+    
     closeAuth();
+    renderAuthUI();   // ✅ ADD THIS (IMPORTANT)
 
   } else {
 
@@ -1220,6 +1231,13 @@ async function loadCloudData(){
 
   document.getElementById("rolls").innerText = rolls;
 }
+
+supabase.auth.onAuthStateChange((_event, session) => {
+  currentUser = session?.user || null;
+  renderAuthUI();
+
+  if (currentUser) loadCloudData();
+});
 
 function save(){
   localStorage.setItem("inv", JSON.stringify(inventory));
