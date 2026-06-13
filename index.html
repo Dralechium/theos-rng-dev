@@ -555,6 +555,7 @@ html, body {
   <div id="leaderboard" style="padding:20px;"></div>
 </div>
 <script>
+  let currentUser = null;
   function showPage(page, btn){
 
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
@@ -754,7 +755,6 @@ if (savedVersion < SAVE_VERSION) {
 }
 
 document.getElementById("rolls").innerText = rolls;
-let currentUser = null;
 
 window.loadLeaderboard = async function(){
   const { data } = await supabase
@@ -1274,18 +1274,17 @@ function save(){
   }
 }
 /* START */
+let currentUser = null;
+
 async function init(){
   const { data } = await supabase.auth.getSession();
 
   if(data.session){
     currentUser = data.session.user;
     await loadCloudData();
-    renderAuthUI();
-  } else {
-    renderAuthUI();
   }
 
-  show(defaultViewer);
+  renderAuthUI();
   render();
 }
 
