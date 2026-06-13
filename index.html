@@ -1136,14 +1136,17 @@ async function logout(){
 
   if(currentUser){
     // push final state before logout
-    await supabase.from("profiles")
+    const res = await supabase
+      .from("profiles")
       .update({
-        rolls: rolls,
+        rolls,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
-        inventory: inventory
+        inventory
       })
       .eq("id", currentUser.id);
+    
+    console.log("Save response:", res);
   }
   localStorage.removeItem(LOCAL_SYNC_FLAG);
   await supabase.auth.signOut();
@@ -1298,6 +1301,10 @@ function save(){
   localStorage.setItem("best", JSON.stringify(best));
   localStorage.setItem("saveVersion", SAVE_VERSION);
 
+  if (document.getElementById("leaderboardPage").classList.contains("active")) {
+    window.loadLeaderboard();
+  }
+  
   // ❌ ONLY sync to cloud if user is fully ACTIVE
   if(currentUser && window.cloudReady){
 
