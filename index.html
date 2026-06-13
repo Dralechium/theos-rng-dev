@@ -240,8 +240,10 @@ html, body {
 }
 
 #bestBox{
-  justify-self:end;
+  margin: 10px auto;
+  display: inline-block;
 }
+
 /* CENTER AREA */
 .roll-area{
   text-align:center;
@@ -394,6 +396,38 @@ html, body {
     0 0 16px currentColor;
 }
 
+<div id="leaderboardPage" class="page">
+  <div id="leaderboard"></div>
+</div>
+
+async function loadLeaderboard(){
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .order("rolls", { ascending:false });
+
+  let html = "<h2>Leaderboard</h2>";
+
+  data.forEach((u, i) => {
+    html += `
+      <div style="display:flex;gap:20px;padding:6px;">
+        <div>#${i+1} ${u.username}</div>
+        <div>${u.rolls}</div>
+        <div style="color:${
+          u.best_odds <= 16 ? "gray" :
+          u.best_odds <= 64 ? "#4da6ff" :
+          u.best_odds <= 500 ? "#b84dff" :
+          u.best_odds <= 1024 ? "gold" : "red"
+        }">
+          ${u.best_name || "None"}
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById("leaderboard").innerHTML = html;
+}
+
 /* rarity glow + color themes */
 .card.common{ box-shadow:0 0 8px gray; background:linear-gradient(145deg,#1a1a1a,#2a2a2a); }
 .card.rare{ box-shadow:0 0 12px #4da6ff; background:linear-gradient(145deg,#0b1a2a,#123a66); }
@@ -451,13 +485,44 @@ html, body {
 }
 
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = "YOUR_SUPABASE_URL";
+  const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
 </head>
 
 <body>
 
 <!-- HEADER -->
 <div class="header">
-
+  <div id="authButtons" style="
+    position:absolute;
+    right:20px;
+    top:15px;
+    display:flex;
+    gap:10px;
+  ">
+    <button onclick="openLogin()" style="
+      background:#42ff29;
+      border:none;
+      padding:10px 16px;
+      border-radius:8px;
+      font-family:Orbitron;
+      cursor:pointer;
+    ">Login</button>
+  
+    <button onclick="openSignup()" style="
+      background:#777;
+      border:none;
+      padding:10px 16px;
+      border-radius:8px;
+      font-family:Orbitron;
+      cursor:pointer;
+      color:white;
+    ">Sign Up</button>
+  </div>
   <div class="hud">
 
     <div class="hudBox" id="rollBox">
@@ -465,11 +530,6 @@ html, body {
     </div>
 
     <h1>theos RNG</h1>
-
-    <div class="hudBox" id="bestBox">
-      <span>Best:</span>
-      <span id="best">None</span>
-    </div>
 
   </div>
 
@@ -493,7 +553,10 @@ html, body {
 <div id="rollPage" class="page active">
 
   <div class="roll-area">
-
+    <div class="hudBox" id="bestBox">
+      <span>Best:</span>
+      <span id="best">None</span>
+    </div>
     <div id="display">
       <img id="img" src="https://i.pravatar.cc/150">
       <div id="name">Press Roll</div>
@@ -700,6 +763,7 @@ if (savedVersion < SAVE_VERSION) {
 }
 
 document.getElementById("rolls").innerText = rolls;
+let currentUser = null;
 
 /* RNG */
 function pick(){
@@ -990,11 +1054,120 @@ function render(){
   }
 }
 
+function openLogin(){
+  document.getElementById("authModal").style.display = "flex";
+  document.getElementById("authTitle").innerText = "Login";
+  document.getElementById("username").style.display = "none";
+}
+
+function openSignup(){
+  document.getElementById("authModal").style.display = "flex";
+  document.getElementById("authTitle").innerText = "Sign Up";
+  document.getElementById("username").style.display = "block";
+}
+
+function closeAuth(){
+  document.getElementById("authModal").style.display = "none";
+}
+
+async function submitAuth(){
+  const email = email.value;
+  const password = password.value;
+  const username = document.getElementById("username").value;
+
+  if(document.getElementById("authTitle").innerText === "Login"){
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email, password
+    });
+
+    if(error) return alert(error.message);
+
+    currentUser = data.user;
+    await loadCloudData();
+    mergeLocalToCloud();
+    closeAuth();
+  } else {
+    const { data, error } = await supabase.auth.signUp({
+      email, password
+    });
+
+    if(error) return alert(error.message);
+
+    currentUser = data.user;
+
+    await supabase.from("profiles").insert({
+      id: currentUser.id,
+      username,
+      rolls: 0,
+      best_name: null,
+      best_odds: null
+    });
+
+    await loadCloudData();
+    mergeLocalToCloud();
+    closeAuth();
+  }
+}
+
+async function mergeLocalToCloud(){
+
+  if(!currentUser) return;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
+    .single();
+
+  let newRolls = rolls + (profile.rolls || 0);
+
+  let newBest = profile.best_odds
+    ? (best && best.odds > profile.best_odds ? best : profile)
+    : best;
+
+  await supabase.from("profiles")
+    .update({
+      rolls: newRolls,
+      best_name: newBest?.name || null,
+      best_odds: newBest?.odds || null
+    })
+    .eq("id", currentUser.id);
+}
+
+async function loadCloudData(){
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
+    .single();
+
+  if(!data) return;
+
+  rolls = data.rolls || rolls;
+
+  if(data.best_name){
+    best = {
+      name: data.best_name,
+      odds: data.best_odds
+    };
+    updateBestUI();
+  }
+
+  document.getElementById("rolls").innerText = rolls;
+}
+
 function save(){
   localStorage.setItem("inv", JSON.stringify(inventory));
   localStorage.setItem("rolls", rolls);
   localStorage.setItem("best", JSON.stringify(best));
   localStorage.setItem("saveVersion", SAVE_VERSION);
+    if(currentUser){
+    supabase.from("profiles").update({
+      rolls,
+      best_name: best?.name || null,
+      best_odds: best?.odds || null
+    }).eq("id", currentUser.id);
+  }
 }
 
 /* START */
@@ -1184,6 +1357,7 @@ if (!migrationDone) {
 
 recalcBest();
 updateBestUI();
+loadLeaderboard();
 
 document.addEventListener("visibilitychange", () => {
 
@@ -1225,6 +1399,52 @@ document.addEventListener("visibilitychange", () => {
 </script>
 <div id="cutsceneOverlay"></div>
 <div id="redLight"></div>
+</div>
+<div id="authModal" style="
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.8);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:10000;
+">
+
+  <div style="
+    background:#111;
+    padding:25px;
+    border-radius:12px;
+    width:300px;
+    border:2px solid #42ff29;
+  ">
+
+    <h2 id="authTitle">Login</h2>
+
+    <input id="email" placeholder="Email" style="width:100%;margin:6px 0;padding:8px;">
+    <input id="password" type="password" placeholder="Password" style="width:100%;margin:6px 0;padding:8px;">
+    <input id="username" placeholder="Username (only signup)" style="width:100%;margin:6px 0;padding:8px;display:none;">
+
+    <button onclick="submitAuth()" style="
+      width:100%;
+      padding:10px;
+      background:#42ff29;
+      border:none;
+      margin-top:10px;
+      font-family:Orbitron;
+      cursor:pointer;
+    ">Submit</button>
+
+    <button onclick="closeAuth()" style="
+      width:100%;
+      padding:8px;
+      margin-top:6px;
+      background:#444;
+      border:none;
+      color:white;
+      cursor:pointer;
+    ">Close</button>
+
+  </div>
 </div>
 </body>
 </html>
