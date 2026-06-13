@@ -742,12 +742,12 @@ let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = null;
 
-const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
+const savedVersion = Number(localStorage.getItem("saveVersion"));
 
-if (savedVersion < SAVE_VERSION) {
-  localStorage.removeItem("inv");
-  localStorage.removeItem("rolls");
-  localStorage.removeItem("best");
+if (!savedVersion) {
+  localStorage.setItem("saveVersion", SAVE_VERSION);
+} else if (savedVersion < SAVE_VERSION) {
+  console.log("Migration needed, but NOT wiping save blindly.");
 }
 
 document.getElementById("rolls").innerText = rolls;
@@ -1158,7 +1158,10 @@ async function logout(){
   rolls = 0;
   best = null;
 
-  localStorage.clear();
+  localStorage.removeItem("inv");
+  localStorage.removeItem("rolls");
+  localStorage.removeItem("best");
+  localStorage.removeItem("saveVersion");
 
   document.getElementById("rolls").innerText = "0";
   updateBestUI();
@@ -1201,7 +1204,8 @@ async function mergeLocalToCloud() {
       rolls: mergedRolls,
       inventory: mergedInv
     })
-
+  localStorage.setItem(LOCAL_SYNC_FLAG, "1");
+ 
   // clear local AFTER merge
   localStorage.setItem("rolls", "0");
   localStorage.setItem("inv", JSON.stringify({}));
@@ -1274,8 +1278,12 @@ async function loadCloudData(){
 
   if(!data) return;
 
-  rolls = data.rolls ?? 0;
-  inventory = data.inventory ?? {};  // 🔥 IMPORTANT FIX
+  if (data.rolls != null) {
+    rolls = data.rolls;
+  }
+  if (data.inventory) {
+    inventory = data.inventory;
+  }
 
   if(data.best_name){
     best = {
@@ -1285,6 +1293,9 @@ async function loadCloudData(){
     updateBestUI();
   }
 
+  if (!data || typeof data !== "object") return;
+  if (!data.inventory) data.inventory = {};
+  
   document.getElementById("rolls").innerText = rolls;
   cloudReady = true;
   window.cloudReady = true;
