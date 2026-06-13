@@ -741,10 +741,10 @@ let inventory = {};
 let rolls = 0;
 let best = null;
 
-if(!currentUser){
-  inventory = JSON.parse(localStorage.getItem("inv")||"{}");
-  rolls = Number(localStorage.getItem("rolls")||0);
-}
+if(currentUser) {
+  // cloud mode only — DO NOT touch localStorage for game state
+  localStorage.setItem("saveVersion", SAVE_VERSION);
+} else {
 
 const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
 
@@ -1191,10 +1191,13 @@ async function submitAuth(){
 
     currentUser = data.user;
     
-    // 1. merge local progress INTO cloud first
+    // STEP 1: load cloud FIRST (so we know baseline)
+    await loadCloudData();
+    
+    // STEP 2: merge local ON TOP of cloud (not reverse)
     await mergeLocalToCloud();
     
-    // 2. then reload correct final cloud state
+    // STEP 3: reload final merged state
     await loadCloudData();
     
     renderAuthUI();
@@ -1261,12 +1264,10 @@ async function loadCloudData(){
 }
 
 function save(){
-  localStorage.setItem("inv", JSON.stringify(inventory));
-  localStorage.setItem("rolls", rolls);
-  localStorage.setItem("best", JSON.stringify(best));
-  localStorage.setItem("saveVersion", SAVE_VERSION);
 
   if(currentUser){
+
+    // ✅ CLOUD MODE (NO localStorage for game state)
     supabase.from("profiles")
       .update({
         rolls: rolls,
@@ -1275,6 +1276,15 @@ function save(){
         inventory: JSON.stringify(inventory)
       })
       .eq("id", currentUser.id);
+
+  } else {
+
+    // ✅ LOCAL MODE ONLY
+    localStorage.setItem("inv", JSON.stringify(inventory));
+    localStorage.setItem("rolls", rolls);
+    localStorage.setItem("best", JSON.stringify(best));
+    localStorage.setItem("saveVersion", SAVE_VERSION);
+
   }
 }
 /* START */
@@ -1485,6 +1495,19 @@ if (!migrationDone) {
 
 recalcBest();
 updateBestUI();
+// restore last visible card on refresh
+(function restoreLastView(){
+  if(best){
+    const v = viewers.find(x => x.id === best.name);
+    if(v) {
+      show(v);
+      return;
+    }
+  }
+
+  // fallback so it NEVER shows "Press Roll"
+  show(defaultViewer);
+})();
 window.addEventListener("load", () => {
   window.loadLeaderboard?.();
 });
@@ -1506,11 +1529,11 @@ document.addEventListener("visibilitychange", () => {
     const final = weightedPick();
 
     rolls++;
-    inventory[final.name] = (inventory[final.name] || 0) + 1;
+    inventory[final.id] = (inventory[final.id] || 0) + 1;
 
     if(!best || final.odds > best.odds){
       best = {
-        name: final.name,
+        name: final.id,
         odds: final.odds
       };
     }
