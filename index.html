@@ -973,6 +973,13 @@ const cardUpgrades = {
   }
 };
 
+function getLocalDataSafe(){
+  return {
+    rolls: Number(localStorage.getItem("rolls") || 0),
+    inv: JSON.parse(localStorage.getItem("inv") || "{}")
+  };
+}
+
 function migrateCardUpgrades() {
   // Only run ONCE during migration phase
   for (const v of viewers) {
@@ -1138,7 +1145,7 @@ async function logout(){
       })
       .eq("id", currentUser.id);
   }
-
+  localStorage.removeItem(LOCAL_SYNC_FLAG);
   await supabase.auth.signOut();
 
   currentUser = null;
@@ -1158,7 +1165,10 @@ async function logout(){
   renderAuthUI();
 }
 
+const LOCAL_SYNC_FLAG = "local_synced_v1";
+
 async function mergeLocalToCloud() {
+  if (localStorage.getItem(LOCAL_SYNC_FLAG) === "1") return;
   if (!currentUser) return;
 
   const { data } = await supabase
@@ -1169,8 +1179,9 @@ async function mergeLocalToCloud() {
 
   if (!data) return;
 
-  const localRolls = Number(localStorage.getItem("rolls") || 0);
-  const localInv = JSON.parse(localStorage.getItem("inv") || "{}");
+  const local = getLocalDataSafe();
+  const localRolls = local.rolls;
+  const localInv = local.inv;
 
   const cloudInv = data.inventory || {};
 
@@ -1195,6 +1206,7 @@ async function mergeLocalToCloud() {
   localStorage.setItem("rolls", "0");
   localStorage.setItem("inv", JSON.stringify({}));
 }
+localStorage.setItem(LOCAL_SYNC_FLAG, "1");
 
 async function submitAuth(){
 
