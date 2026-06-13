@@ -779,17 +779,22 @@ window.loadLeaderboard = async function(){
   let html = "<h2>Leaderboard</h2>";
 
   data.forEach((u, i) => {
+  
+    const rolls = u.rolls ?? 0;
+    const bestName = u.best_name ?? "None";
+    const bestOdds = u.best_odds ?? Infinity;
+  
     html += `
       <div style="display:flex;gap:20px;padding:6px;">
         <div>#${i+1} ${u.username}</div>
-        <div>${u.rolls}</div>
+        <div>${rolls}</div>
         <div style="color:${
-          (u.best_odds ?? 999999) <= 16 ? "gray" :
-          (u.best_odds ?? 999999) <= 64 ? "#4da6ff" :
-          (u.best_odds ?? 999999) <= 500 ? "#b84dff" :
-          (u.best_odds ?? 999999) <= 1024 ? "gold" : "red"
+          bestOdds <= 16 ? "gray" :
+          bestOdds <= 64 ? "#4da6ff" :
+          bestOdds <= 500 ? "#b84dff" :
+          bestOdds <= 1024 ? "gold" : "red"
         }">
-          ${u.best_name ?? "None"}
+          ${bestName}
         </div>
       </div>
     `;
@@ -1162,14 +1167,12 @@ async function submitAuth(){
     });
 
     if(error) return alert(error.message);
-
-    currentUser = data.user;
     
+    currentUser = data.user;
     await loadCloudData();
     await mergeLocalToCloud();
-    
+    renderAuthUI();   // 👈 ADD THIS
     closeAuth();
-    renderAuthUI();   // ✅ ADD THIS (IMPORTANT)
 
   } else {
 
@@ -1181,7 +1184,7 @@ async function submitAuth(){
     if(error) return alert(error.message);
 
     currentUser = data.user;
-
+    
     await supabase.from("profiles").insert({
       id: currentUser.id,
       username,
@@ -1189,9 +1192,10 @@ async function submitAuth(){
       best_name: null,
       best_odds: null
     });
-
+    
     await loadCloudData();
     await mergeLocalToCloud();
+    renderAuthUI();   // 👈 ADD THIS
     closeAuth();
   }
 }
@@ -1294,6 +1298,16 @@ window.cutscene = function(type){
   // trigger cutscene
   playCutscene(type);
 };
+
+supabase.auth.getSession().then(({ data }) => {
+  if (data.session) {
+    currentUser = data.session.user;
+    renderAuthUI();
+    loadCloudData();
+  } else {
+    renderAuthUI();
+  }
+});
 
 function easeInExpo(t){
   return t === 0 ? 0 : Math.pow(2, 10 * (t - 1));
