@@ -748,10 +748,24 @@ if(currentUser) {
 
 const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
 
+const savedVersion = Number(localStorage.getItem("saveVersion") || SAVE_VERSION);
+
 if (savedVersion < SAVE_VERSION) {
-  localStorage.removeItem("inv");
-  localStorage.removeItem("rolls");
-  localStorage.removeItem("best");
+
+  // only migrate if data actually exists
+  const hasData =
+    localStorage.getItem("rolls") !== null ||
+    localStorage.getItem("inv") !== null;
+
+  if (hasData) {
+    console.log("Running safe migration...");
+    migrateInventoryCards();
+    migrateOldSave();
+    migrateCardUpgrades();
+    recalcBest();
+  }
+
+  localStorage.setItem("saveVersion", SAVE_VERSION);
 }
 
 document.getElementById("rolls").innerText = rolls;
