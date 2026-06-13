@@ -1073,16 +1073,12 @@ function openLogin(){
   document.getElementById("authModal").style.display = "flex";
   document.getElementById("authTitle").innerText = "Login";
   document.getElementById("username").style.display = "none";
-  currentUser = data.user;
-  renderAuthUI();
 }
 
 function openSignup(){
   document.getElementById("authModal").style.display = "flex";
   document.getElementById("authTitle").innerText = "Sign Up";
   document.getElementById("username").style.display = "block";
-  currentUser = data.user;
-  renderAuthUI();
 }
 
 function closeAuth(){
