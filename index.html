@@ -736,9 +736,14 @@ function rarity(o){
 const SAVE_VERSION = 1;
 const MIGRATION_FLAG_KEY = "migration_v" + SAVE_VERSION + "_done";
 
-let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
-let rolls = Number(localStorage.getItem("rolls")||0);
+let inventory = {};
+let rolls = 0;
 let best = null;
+
+if(!currentUser){
+  inventory = JSON.parse(localStorage.getItem("inv")||"{}");
+  rolls = Number(localStorage.getItem("rolls")||0);
+}
 
 const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
 
@@ -1141,23 +1146,28 @@ async function mergeLocalToCloud() {
 
   if (!data) return;
 
-  // local data
   const localRolls = Number(localStorage.getItem("rolls") || 0);
   const localInv = JSON.parse(localStorage.getItem("inv") || "{}");
 
-  // merge rules (simple version: add rolls, merge inventory counts)
+  const cloudInv = data.inventory ? JSON.parse(data.inventory) : {};
+
+  // merge inventory
+  for (const [id, count] of Object.entries(localInv)) {
+    cloudInv[id] = (cloudInv[id] || 0) + count;
+  }
+
   const mergedRolls = (data.rolls || 0) + localRolls;
 
   await supabase
     .from("profiles")
     .update({
-      rolls: mergedRolls
+      rolls: mergedRolls,
+      inventory: JSON.stringify(cloudInv)
     })
     .eq("id", currentUser.id);
 
-  // optional: clear local after merge so it doesn't double-merge later
   localStorage.setItem("rolls", "0");
-  localStorage.setItem("inv", JSON.stringify({}));
+  localStorage.setItem("inv", "{}");
 }
 
 async function submitAuth(){
@@ -1224,17 +1234,26 @@ async function loadCloudData(){
 
   if(!data) return;
 
+  // rolls
   rolls = data.rolls ?? 0;
 
+  // inventory (YOU ARE CURRENTLY NOT STORING THIS, BUT YOU SHOULD)
+  inventory = data.inventory ? JSON.parse(data.inventory) : {};
+
+  // best
   if(data.best_name){
     best = {
       name: data.best_name,
       odds: data.best_odds
     };
-    updateBestUI();
+  } else {
+    best = null;
   }
 
   document.getElementById("rolls").innerText = rolls;
+
+  render();
+  updateBestUI();
 }
 
 function save(){
@@ -1248,7 +1267,8 @@ function save(){
       .update({
         rolls: rolls,
         best_name: best?.name || null,
-        best_odds: best?.odds || null
+        best_odds: best?.odds || null,
+        inventory: JSON.stringify(inventory)
       })
       .eq("id", currentUser.id);
   }
