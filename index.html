@@ -1254,6 +1254,10 @@ async function loadCloudData(){
 
   render();
   updateBestUI();
+  if (best) {
+    const v = viewers.find(x => x.id === best.name);
+    if (v) show(v);
+  }
 }
 
 function save(){
