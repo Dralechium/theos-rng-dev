@@ -821,7 +821,7 @@ function migrateInventoryCards() {
     newInv[targetId] = (newInv[targetId] || 0) + count;
   }
 
-  inventory = inventory; // leave as-is
+  inventory = newInv;
   save();
 }
 
