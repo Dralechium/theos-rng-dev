@@ -901,13 +901,8 @@ let inventory = saveData.inventory || {};
 let rolls = saveData.rolls || 0;
 let best = saveData.best || null;
 
-const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
-
-if (savedVersion < SAVE_VERSION) {
-  localStorage.removeItem("inv");
-  localStorage.removeItem("rolls");
-  localStorage.removeItem("best");
-}
+const SAVE_KEY = "theos_rng_save";
+const SAVE_VERSION = 1;
 
 document.getElementById("rolls").innerText = rolls;
 
@@ -1201,7 +1196,6 @@ function render(){
 }
 
 function save(){
-
   saveData = {
     version: SAVE_VERSION,
     rolls,
@@ -1209,10 +1203,7 @@ function save(){
     best
   };
 
-  localStorage.setItem(
-    SAVE_KEY,
-    JSON.stringify(saveData)
-  );
+  localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
 }
 
 /* START */
