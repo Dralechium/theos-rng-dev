@@ -592,6 +592,8 @@ function moveBlob(btn){
   blob.style.left = left + "px";
 }
 
+let cloudReady = false;
+window.cloudReady = false;
 let autoRollStartTime = null;
   
 function spawnCardSparklesOn(el, rarityType){
@@ -1124,8 +1126,35 @@ function renderAuthUI(){
 }
 
 async function logout(){
+
+  if(currentUser){
+    // push final state before logout
+    await supabase.from("profiles")
+      .update({
+        rolls: rolls,
+        best_name: best?.name || null,
+        best_odds: best?.odds || null,
+        inventory: inventory
+      })
+      .eq("id", currentUser.id);
+  }
+
   await supabase.auth.signOut();
+
   currentUser = null;
+  cloudReady = false;
+
+  // 🔥 CLEAR LOCAL COMPLETELY (NO DUPES EVER)
+  inventory = {};
+  rolls = 0;
+  best = null;
+
+  localStorage.clear();
+
+  document.getElementById("rolls").innerText = "0";
+  updateBestUI();
+  render();
+
   renderAuthUI();
 }
 
@@ -1188,11 +1217,12 @@ async function submitAuth(){
 
     currentUser = data.user;
     
-    // 1. merge local progress INTO cloud first
+    await loadCloudData();   // load cloud FIRST
+    
+    // merge AFTER load (only if local exists)
     await mergeLocalToCloud();
     
-    // 2. then reload correct final cloud state
-    await loadCloudData();
+    await loadCloudData();   // re-sync final state
     
     renderAuthUI();
     closeAuth();
@@ -1244,25 +1274,32 @@ async function loadCloudData(){
   }
 
   document.getElementById("rolls").innerText = rolls;
+  cloudReady = true;
+  window.cloudReady = true;
 }
 
 function save(){
+
+  // ALWAYS save locally first
   localStorage.setItem("inv", JSON.stringify(inventory));
   localStorage.setItem("rolls", rolls);
   localStorage.setItem("best", JSON.stringify(best));
   localStorage.setItem("saveVersion", SAVE_VERSION);
 
-  if(currentUser){
+  // ❌ ONLY sync to cloud if user is fully ACTIVE
+  if(currentUser && window.cloudReady){
+
     supabase.from("profiles")
       .update({
         rolls: rolls,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
-        inventory: inventory   // ✅ ADD THIS LINE
+        inventory: inventory
       })
       .eq("id", currentUser.id);
   }
 }
+
 /* START */
 async function init(){
   const { data } = await supabase.auth.getSession();
