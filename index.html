@@ -1176,7 +1176,6 @@ async function mergeLocalToCloud() {
   const { data } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", currentUser.id)
     .single();
 
   if (!data) return;
@@ -1260,7 +1259,6 @@ async function submitAuth(){
       best_odds: best?.odds || null,
       inventory
     });
-      .eq("id", currentUser.id);
     
     await loadCloudData();
     renderAuthUI();   // 👈 ADD THIS
@@ -1272,7 +1270,6 @@ async function loadCloudData(){
   const { data } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", currentUser.id)
     .single();
 
   if(!data) return;
@@ -1316,7 +1313,6 @@ async function save(){
         best_odds: best?.odds || null,
         inventory
       })
-      .eq("id", currentUser.id);
 
     if(error) console.log("SAVE ERROR:", error);
   }
