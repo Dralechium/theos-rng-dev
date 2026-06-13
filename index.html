@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link href="https://fonts.googleapis.com/css2?famF<ily=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
-<meta charset="UTF-8">F
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
 <title>theos RNG</title>
 
 <style>
@@ -646,310 +646,994 @@ html, body {
 
 </div>
 <script>
-(() => {
-  "use strict";
+  function showPage(page, btn){
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
 
-  /* =========================
-     SAFE DOM REFERENCES
-  ========================= */
-  const $ = (id) => document.getElementById(id);
+  if(page === "roll"){
+  
+    document
+      .getElementById("rollPage")
+      .classList.add("active");
+  
+  }
+  else if(page === "inventory"){
+  
+    document
+      .getElementById("inventoryPage")
+      .classList.add("active");
+  
+  }
+  else{
+  
+    document
+      .getElementById("leaderboardPage")
+      .classList.add("active");
+  
+    loadLeaderboard();
+  }
 
-  const ui = {
-    rolls: $("rolls"),
-    best: $("best"),
-    display: $("display"),
-    img: $("img"),
-    name: $("name"),
-    odds: $("odds"),
-    inventory: $("inventory"),
-    blob: $("blob"),
-    leaderboard: $("leaderboardTable"),
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  btn.classList.add("active");
 
-    loginBtn: $("loginBtn"),
-    signupBtn: $("signupBtn"),
+  moveBlob(btn);
 
-    authModal: $("authModal"),
-    authTitle: $("authTitle"),
-    authEmail: $("authEmail"),
-    authPassword: $("authPassword"),
-    authUsername: $("authUsername"),
-    authSubmit: $("authSubmit"),
+  save(); // optional, but safe
+}
+
+function moveBlob(btn){
+  const blob = document.getElementById("blob");
+
+  const parent = btn.parentElement;
+  const parentRect = parent.getBoundingClientRect();
+  const btnRect = btn.getBoundingClientRect();
+
+  const left = btnRect.left - parentRect.left;
+
+  blob.style.width = btn.offsetWidth + "px";
+  blob.style.left = left + "px";
+}
+
+let autoRollStartTime = null;
+  
+function spawnCardSparklesOn(el, rarityType){
+
+  el.querySelectorAll(".cardSparkle").forEach(e => e.remove());
+  
+  const colors = {
+    rare: "#4da6ff",
+    epic: "#b84dff",
+    legendary: "#ffd700",
+    mythic: "#ff3030"
   };
 
-  /* =========================
-     SUPABASE (FIXED: NO DUPLICATE DECLARATION)
-  ========================= */
-  const SUPABASE_URL = "https://fbrhajuyjematnzgddec.supabase.co";
-  const SUPABASE_ANON_KEY = "YOUR_KEY";
+  const color = colors[rarityType];
+  if(!color) return;
 
-  // IMPORTANT FIX: global-safe singleton
-  const supabase =
-    window.__supabaseClient ??
-    (window.__supabaseClient = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_ANON_KEY
-    ));
+  const rect = el.getBoundingClientRect();
 
-  /* =========================
-     GAME DATA
-  ========================= */
+  const corners = [
+    { x: 0, y: rect.height },      // bottom-left
+    { x: rect.width, y: 0 }        // top-right
+  ];
 
-  const SAVE_KEY = "theos_rng_save";
-  const SAVE_VERSION = 1;
+  for (const corner of corners) {
 
-  let currentUser = null;
+    const isBottomLeft = (corner.x === 0 && corner.y === rect.height);
+    const isTopRight   = (corner.x === rect.width && corner.y === 0);
 
-  const viewers = [/* KEEP YOUR FULL ARRAY EXACTLY AS IS */];
+    for (let i = 0; i < 2; i++) {
 
-  const cardMigrations = {
-    theosGMD: "taiago7",
-    midgatal: "twkn9",
-    spaceuk: "kazagd"
+      const s = document.createElement("div");
+      s.className = "cardSparkle";
+      s.style.color = color;
+
+      const isBig = (i === 0);
+
+      const size = isBig ? 56 : 32;
+      s.style.width = size + "px";
+      s.style.height = size + "px";
+
+      let x = corner.x;
+      let y = corner.y;
+
+      let jitterX = 0;
+      let jitterY = 0;
+
+      // DEFAULT
+      if (!isBottomLeft && !isTopRight) {
+        jitterX = isBig ? -2 : 3;
+        jitterY = isBig ? 3 : -2;
+      }
+
+      // 🔥 bottom-left (your original rule)
+      else if (isBottomLeft) {
+        if (isBig) {
+          jitterX = 0;
+          jitterY = 0;
+        } else {
+          jitterX = 10;
+          jitterY = -10;
+        }
+      }
+
+      // 🔥 TOP-RIGHT (SWAPPED big/small behavior)
+      else if (isTopRight) {
+        if (isBig) {
+          // BIG now goes INWARD
+          jitterX = -10;
+          jitterY = 10;
+        } else {
+          // SMALL sits on edge
+          jitterX = 0;
+          jitterY = 0;
+        }
+      }
+
+      s.style.left = (x + jitterX) + "px";
+      s.style.top = (y + jitterY) + "px";
+
+      const offset = isTopRight
+        ? (isBig ? sparkleGap / 2 : -sparkleGap / 2)
+        : (isBig ? -sparkleGap / 2 : sparkleGap / 2);
+      
+      const dx = (corner.x === 0 ? -1 : 1) * offset;
+      const dy = (corner.y === 0 ? -1 : 1) * offset;
+
+      s.style.setProperty("--dx", dx + "px");
+      s.style.setProperty("--dy", dy + "px");
+
+      s.style.zIndex = isBig ? 2 : 1;
+
+      el.appendChild(s);
+    }
+  }
+}
+
+const sparkleGap = 20; // 👈 change this to increase/decrease spacing
+
+/* VIEWERS */
+const viewers = [
+  {id:"duckwithsunnies", name:"duckwithsunnies", odds:2, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6ef3b0ef-bc0b-463d-a3d9-1f2a646a534f-profile_image-70x70.png"},
+  {id:"ilee_ez", name:"ilee_ez", odds:4, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/e0efcfce-7516-4589-9bcf-5c6ec63a8a76-profile_image-70x70.png"},
+  {id:"ztatsukii_", name:"ztatsukii_", odds:8, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/4fd5ffe5-6799-4f4e-b470-f1420f1caee4-profile_image-70x70.jpeg"},
+  {id:"Shunkohh", name:"Shunkohh", odds:16, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/2a1751b4-a94c-4c97-9fa7-3168b6a2768f-profile_image-70x70.png"},
+  {id:"41unc", name:"41unc", odds:25, image:"https://cdn.discordapp.com/avatars/820266716537815040/396a0ee557222daf4c58ed975aad5e59.webp?size=1024"},
+  {id:"pushlastname", name:"pushlastname", odds:32, image:"https://cdn.discordapp.com/avatars/822151571637796875/fc174b0bbdb419e6a3d486e8b1134bb0.webp?size=1024"},
+  {id:"AbyssFDK", name:"AbyssFDK", odds:50, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/84332b83-3f01-4ce3-9860-abb0a671fb5c-profile_image-70x70.jpeg"},
+  {id:"naksug10", name:"naksug10", odds:64, image:"https://cdn.discordapp.com/avatars/1136703121582723072/e69e04c9bb9c22705e4c3374b8a1f4dd.webp?size=1024"},
+  {id:"gmdbon", name:"gmdbon", odds:100, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/45da4302-a7a6-4bc8-a320-f7ebac40d84f-profile_image-70x70.png"},
+  {id:"2_b_a_d", name:"2_b_a_d", odds:128, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/ff6f1754-b22e-46ef-a8da-f36c8f97d1a7-profile_image-70x70.png"},
+  {id:"ktheunknown1", name:"ktheunknown1", odds:256, image:"https://cdn.discordapp.com/avatars/1229398489021284466/03b7cbe420aa50b347306b699851a437.webp?size=1024"},
+  {id:"twkn9", name:"twkn9", odds:500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/612062a1-b7cb-4e92-8229-80823c12b31f-profile_image-70x70.png"},
+  {id:"ChefGmd", name:"ChefGmd", odds:512, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/f6dfdec2-1ad0-4757-aa3c-c061cc5cab69-profile_image-70x70.png"},
+  {id:"midgatal", name:"midgatal", odds:750, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/bc185f86-30d2-4422-b547-5f4e3c504d54-profile_image-70x70.png"},
+  {id:"IVDrale", name:"IVDrale", odds:1000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6e71f426-65ca-4914-b6e8-0e5499f032cb-profile_image-70x70.png"},
+  {id:"Gamingbyte444", name:"Gamingbyte444", odds:1024, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/a6d961bf-ece5-4464-9b1e-5a326cfebe94-profile_image-70x70.png"},
+  {id:"Christ_Is_God", name:"Christ_Is_God", odds:5000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/98b31c09-fa8b-4318-88bd-ef8a0443b772-profile_image-70x70.png"},
+  {id:"kazagd", name:"kazagd", odds:7500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/7725062e-c231-406a-b000-34973ce973a2-profile_image-70x70.png"},
+  {id:"taiago7", name:"taiago7", odds:10000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/133319eb-8b72-40c2-89f5-4bcf9c2dfa24-profile_image-70x70.png"},
+  {id:"spaceuk", name:"spaceuk", odds:50000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/66d53358-962a-4f18-8917-12a2d220e0ef-profile_image-70x70.png"},
+  {id:"theosGMD", name:"theosGMD", odds:100000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/0ffc8233-6b32-411e-bfbd-4167c09cc2a2-profile_image-70x70.png"}
+];
+
+const defaultViewer = viewers[viewers.length - 1];
+
+const cardMigrations = {
+  theosGMD: "taiago7",// oldId -> newId
+  midgatal: "twkn9",
+  spaceuk: "kazagd"
+};
+
+/* RARITY */
+function rarity(o){
+  if(o<=16) return "common";
+  if(o<=64) return "rare";
+  if(o<=500) return "epic";
+  if(o<=1024) return "legendary";
+  return "mythic";
+}
+
+/* DATA */
+const SAVE_VERSION = 1;
+const SUPABASE_URL = "https://fbrhajuyjematnzgddec.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZicmhhanV5amVtYXRuemdkZGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNDU0NjcsImV4cCI6MjA5NjkyMTQ2N30.KQa8fszD-jwB2jmncq9Qcpf_Qn5vQLl9PxWJM03aqWs";
+
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+let currentUser = null;
+const MIGRATION_FLAG_KEY = "migration_v" + SAVE_VERSION + "_done";
+
+const SAVE_KEY = "theos_rng_save";
+
+function migrateLegacySave(){
+
+  if(localStorage.getItem(SAVE_KEY)){
+    return;
+  }
+
+  const oldInv =
+    JSON.parse(localStorage.getItem("inv") || "{}");
+
+  const oldRolls =
+    Number(localStorage.getItem("rolls") || 0);
+
+  const oldBest =
+    JSON.parse(localStorage.getItem("best") || "null");
+
+  const migrated = {
+    version: SAVE_VERSION,
+    rolls: oldRolls,
+    inventory: oldInv,
+    best: oldBest
   };
 
-  const rarity = (o) => {
-    if (o <= 16) return "common";
-    if (o <= 64) return "rare";
-    if (o <= 500) return "epic";
-    if (o <= 1024) return "legendary";
-    return "mythic";
+  localStorage.setItem(
+    SAVE_KEY,
+    JSON.stringify(migrated)
+  );
+}
+
+function loadSave(){
+
+  const raw = localStorage.getItem(SAVE_KEY);
+
+  if(!raw){
+    return structuredClone(DEFAULT_SAVE);
+  }
+
+  try{
+    return JSON.parse(raw);
+  }catch{
+    return structuredClone(DEFAULT_SAVE);
+  }
+}
+
+migrateLegacySave();
+let saveData = loadSave();
+
+let inventory = saveData.inventory || {};
+let rolls = saveData.rolls || 0;
+let best = saveData.best || null;
+
+const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
+
+if (savedVersion < SAVE_VERSION) {
+  localStorage.removeItem("inv");
+  localStorage.removeItem("rolls");
+  localStorage.removeItem("best");
+}
+
+document.getElementById("rolls").innerText = rolls;
+
+/* RNG */
+function pick(){
+  // weighted selection so commons appear more often during flicker
+  const weights = viewers.map(v => 1 / v.odds);
+
+  let total = weights.reduce((a,b)=>a+b,0);
+  let r = Math.random() * total;
+
+  for(let i = 0; i < viewers.length; i++){
+    r -= weights[i];
+    if(r <= 0) return viewers[i];
+  }
+
+  return viewers[0];
+}
+
+function migrateInventoryCards() {
+  const newInv = {};
+
+  for (const [id, count] of Object.entries(inventory)) {
+
+    let targetId = id;
+
+    // 1. handle explicit ID migration map
+    if (cardMigrations[id]) {
+      targetId = cardMigrations[id];
+    }
+
+    newInv[targetId] = (newInv[targetId] || 0) + count;
+  }
+
+  inventory = newInv;
+  save();
+}
+
+/* ROLL */
+let running=false;
+let autoRoll = false;
+let autoRollTimer = null;
+
+function toggleAutoRoll(){
+
+  autoRoll = !autoRoll;
+
+  const state = document.getElementById("autoRollState");
+
+  if(autoRoll){
+
+    state.textContent = "ON";
+    state.className = "autoOn";
+
+    autoRollStartTime = Date.now();
+
+    if(!running){
+      roll();
+    }
+
+  }else{
+
+    state.textContent = "OFF";
+    state.className = "autoOff";
+
+    autoRollStartTime = null;
+  }
+}
+
+function weightedPick(){
+  let total = 0;
+
+  for (let v of viewers) {
+    total += 1 / v.odds;
+  }
+
+  let r = Math.random() * total;
+
+  let acc = 0;
+  for (let v of viewers) {
+    acc += 1 / v.odds;
+    if (r <= acc) return v;
+  }
+}
+
+function roll(){
+    if (document.hidden) {
+  
+    let final = weightedPick();
+  
+    rolls++;
+    document.getElementById("rolls").innerText = rolls;
+  
+    show(final);
+    finish(final);
+  
+    if(autoRoll){
+      setTimeout(roll, 3000);
+    }
+  
+    return;
+  }
+  
+  if(running) return;
+  running = true;
+
+  rolls++;
+  document.getElementById("rolls").innerText = rolls;
+
+  const start = performance.now();
+  const rollDuration = 3000;
+
+  function visualPick(){
+    return viewers[Math.floor(Math.random() * viewers.length)];
+  }
+
+  function frame(t){
+    let p = (t - start) / rollDuration;
+    if(p > 1) p = 1;
+
+    let delay = 35 + (220 * p);
+
+    if(p < 1){
+      let v = visualPick();
+      show(v);
+
+      setTimeout(() => {
+        requestAnimationFrame(frame);
+      }, delay);
+
+    } else {
+      let final = weightedPick();
+      show(final);
+      finish(final);
+      setTimeout(() => {
+        running = false;
+
+        if(autoRoll){
+          roll();
+        }
+      }, 50);
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+/* SHOW */
+function show(v){
+  const display = document.getElementById("display");
+
+  document.getElementById("img").src = v.image;
+  document.getElementById("name").innerText = v.id;
+  document.getElementById("odds").innerText = "1 in " + v.odds;
+
+  display.className = "";
+  const r = rarity(v.odds);
+  display.classList.add(r);
+
+  // 🔥 IMPORTANT: remove old sparkles whenever card changes
+  display.querySelectorAll(".cardSparkle").forEach(e => e.remove());
+}
+
+function migrateOldSave() {
+  const old = JSON.parse(localStorage.getItem("inv") || "{}");
+  const newInv = {};
+
+  for (const v of viewers) {
+    // if old save used names, convert them
+    if (old[v.name] !== undefined) {
+      newInv[v.id] = old[v.name];
+    }
+
+    // already-migrated or new
+    if (old[v.id] !== undefined) {
+      newInv[v.id] = old[v.id];
+    }
+  }
+
+  inventory = newInv;
+  save();
+}
+
+const cardUpgrades = {
+  theos: {
+    oldOdds: 10000,
+    newOdds: 100000
+  }
+};
+
+function migrateCardUpgrades() {
+  // Only run ONCE during migration phase
+  for (const v of viewers) {
+    const upgrade = cardUpgrades[v.id];
+    if (!upgrade) continue;
+
+    if (v.odds === upgrade.oldOdds) {
+      v.odds = upgrade.newOdds;
+    }
+  }
+}
+
+/* FINISH */
+function finish(v){
+
+  inventory[v.id] = (inventory[v.id] || 0) + 1;
+
+  const r = rarity(v.odds);
+
+  if(r !== "common"){
+    const display = document.getElementById("display");
+    spawnCardSparklesOn(display, r);
+  }
+
+  if(r === "legendary" || r === "mythic"){
+    playCutscene(r);
+  }
+
+  if (!best || v.odds > best.odds) {
+    best = { name: v.id, odds: v.odds };
+  
+    const bestText = document.getElementById("best");
+    bestText.innerText = `${best.name} (1/${best.odds})`;
+
+    bestText.className = "";
+    bestText.classList.add("best-" + rarity(best.odds));
+  }
+
+save();
+render();
+  
+}
+
+function updateBestUI() {
+  const bestText = document.getElementById("best");
+
+  if (!best) {
+    bestText.innerText = "None";
+    bestText.className = "";
+    return;
+  }
+
+  bestText.innerText = `${best.name} (1/${best.odds})`;
+  bestText.className = "";
+  bestText.classList.add("best-" + rarity(best.odds));
+}
+
+function recalcBest() {
+  let newBest = null;
+
+  for (const v of viewers) {
+    const count = inventory[v.id] || 0;
+    if (count > 0) {
+      if (!newBest || v.odds > newBest.odds) {
+        newBest = {
+          name: v.id,
+          odds: v.odds
+        };
+      }
+    }
+  }
+
+  best = newBest;
+  updateBestUI();
+}
+
+/* INVENTORY */
+function render(){
+  let inv = document.getElementById("inventory");
+  inv.innerHTML = "";
+
+  for(let v of viewers){
+    let owned = inventory[v.id];
+
+    inv.innerHTML += `
+  <div class="card ${owned ? rarity(v.odds) : "locked"}">
+    
+    ${owned ? `
+      <img src="${v.image}">
+      <div>${v.id}</div>
+      <div>1 in ${v.odds}</div>
+      <div>x${owned}</div>
+    ` : `
+      <div class="lockedText">???</div>
+      <div class="lockedSub">Locked</div>
+    `}
+    
+  </div>
+`;
+  }
+}
+
+function save(){
+
+  saveData = {
+    version: SAVE_VERSION,
+    rolls,
+    inventory,
+    best
   };
 
-  /* =========================
-     STATE
-  ========================= */
+  localStorage.setItem(
+    SAVE_KEY,
+    JSON.stringify(saveData)
+  );
+}
 
-  let saveData =
-    JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
+/* START */
+show(defaultViewer);
+render();
 
-  let inventory = saveData.inventory || {};
-  let rolls = saveData.rolls || 0;
-  let best = saveData.best || null;
+window.onload = () => {
+  const firstTab = document.querySelector(".tab");
+  moveBlob(firstTab);
+};
 
-  let running = false;
-  let autoRoll = false;
-  let autoRollStartTime = null;
+window.cutscene = function(type){
+  // normalize input
+  type = type.toLowerCase();
 
-  /* =========================
-     SAVE SYSTEM
-  ========================= */
+  // get all viewers of that rarity
+  const pool = viewers.filter(v => rarity(v.odds) === type);
 
-  function save() {
-    localStorage.setItem(
-      SAVE_KEY,
-      JSON.stringify({
-        version: SAVE_VERSION,
-        inventory,
-        rolls,
-        best
-      })
+  if(pool.length === 0){
+    console.log("No cards found for rarity:", type);
+    return;
+  }
+
+  // pick random card
+  const v = pool[Math.floor(Math.random() * pool.length)];
+
+  // show visually ONLY (no inventory, no rolls)
+  show(v);
+
+  // trigger cutscene
+  playCutscene(type);
+};
+
+function easeInExpo(t){
+  return t === 0 ? 0 : Math.pow(2, 10 * (t - 1));
+}
+
+window.playCutscene = function(type){
+  const overlay = document.getElementById("cutsceneOverlay");
+  const red = document.getElementById("redLight");
+
+  if(type === "legendary"){
+    red.style.setProperty(
+      "--cutscene-color-bright",
+      "rgba(255,215,0,0.95)"
+    );
+
+    red.style.setProperty(
+      "--cutscene-color-mid",
+      "rgba(255,215,0,0.5)"
+    );
+  }
+  else{
+    // mythic
+    red.style.setProperty(
+      "--cutscene-color-bright",
+      "rgba(255,0,0,0.95)"
+    );
+
+    red.style.setProperty(
+      "--cutscene-color-mid",
+      "rgba(255,0,0,0.5)"
     );
   }
 
-  /* =========================
-     ROLL SYSTEM
-  ========================= */
+  const display = document.getElementById("display");
 
-  function weightedPick() {
-    let total = viewers.reduce((a, v) => a + 1 / v.odds, 0);
-    let r = Math.random() * total;
+  const start = performance.now();
 
-    for (const v of viewers) {
-      r -= 1 / v.odds;
-      if (r <= 0) return v;
+  const FADE_TO_BLACK = 300;
+  const BLACK_HOLD = 700;
+
+  const RED_START = FADE_TO_BLACK + BLACK_HOLD;
+  const RED_DURATION = 3500;
+
+  overlay.style.transition = "none";
+  red.style.transition = "none";
+
+  overlay.style.opacity = 0;
+  red.style.opacity = 0;
+  red.style.transform = "scale(0.2)";
+
+  display.style.opacity = 0;
+
+  function frame(now){
+    const t = now - start;
+
+    /* 1. fade to black */
+    if(t < FADE_TO_BLACK){
+      overlay.style.opacity = t / FADE_TO_BLACK;
     }
-    return viewers[0];
-  }
 
-  function roll() {
-    if (running) return;
-    running = true;
+    /* 2. hold black */
+    else if(t < RED_START){
+      overlay.style.opacity = 1;
+    }
 
-    rolls++;
-    ui.rolls.innerText = rolls;
+    /* 3. red fade in (SMOOTH, not instant) */
+    else if(t < RED_START + 400){
+      overlay.style.opacity = 1;
 
-    const start = performance.now();
-    const duration = 3000;
+      const p = (t - RED_START) / 400;
 
-    function frame(t) {
-      let p = Math.min(1, (t - start) / duration);
+      red.style.opacity = p;
+      red.style.transform = `scale(${0.2 + p * 0.4})`;
+    }
 
-      if (p < 1) {
-        const v = viewers[Math.floor(Math.random() * viewers.length)];
-        show(v);
-        setTimeout(() => requestAnimationFrame(frame), 40 + p * 200);
-      } else {
-        const final = weightedPick();
-        show(final);
-        finish(final);
-        running = false;
+    /* 4. exponential expansion (NO SHAPE SWITCH) */
+    else if(t < RED_START + RED_DURATION){
+      const p = (t - (RED_START + 400)) / (RED_DURATION - 400);
 
-        if (autoRoll) setTimeout(roll, 200);
-      }
+      const e = easeInExpo(p);
+
+      red.style.opacity = 1;
+
+      // keep uniform scaling base, then breathing stretch
+      const base = 0.6 + e * 8;
+
+      // subtle distortion only
+      const stretch = 1 + (Math.sin(e * Math.PI) * 0.15);
+
+      red.style.transform = `scale(${base * stretch})`;
+    }
+
+    /* 5. full screen burst */
+    else if(t < RED_START + RED_DURATION + 200){
+      red.style.opacity = 1;
+      red.style.transform = "scale(25, 15)";
+    }
+
+    /* 6. fade out + reveal instantly */
+    else{
+      red.style.opacity = 0;
+      overlay.style.opacity = 0;
+
+      display.style.opacity = 1;
+      return;
     }
 
     requestAnimationFrame(frame);
   }
 
-  /* =========================
-     DISPLAY
-  ========================= */
+  requestAnimationFrame(frame);
+};
 
-  function show(v) {
-    ui.img.src = v.image;
-    ui.name.innerText = v.id;
-    ui.odds.innerText = `1 in ${v.odds}`;
+window.showCard = function(name){
 
-    ui.display.className = rarity(v.odds);
-    ui.display.querySelectorAll(".cardSparkle").forEach(e => e.remove());
+  const v = viewers.find(x =>
+    x.name.trim().toLowerCase() === name.trim().toLowerCase()
+  );
+
+  if(!v){
+    console.log("Card not found:", name);
+    return;
   }
 
-  /* =========================
-     FINISH
-  ========================= */
+  const r = rarity(v.odds);
 
-  function finish(v) {
-    inventory[v.id] = (inventory[v.id] || 0) + 1;
+  show(v);
 
-    const r = rarity(v.odds);
+  const display = document.getElementById("display");
+  display.style.opacity = 1;
 
-    if (!best || v.odds > best.odds) {
-      best = { name: v.id, odds: v.odds };
-      ui.best.innerText = `${best.name} (1/${best.odds})`;
+  if(r !== "common"){
+    spawnCardSparklesOn(display, r);
+  }
+
+  if(r === "legendary" || r === "mythic"){
+    playCutscene(r);
+  }
+};
+
+const migrationDone = localStorage.getItem(MIGRATION_FLAG_KEY);
+
+if (!migrationDone) {
+
+  console.log("Running one-time migration...");
+
+  migrateInventoryCards();
+  migrateOldSave();
+  migrateCardUpgrades();
+  recalcBest();
+  save();
+
+  localStorage.setItem(MIGRATION_FLAG_KEY, "1");
+}
+
+recalcBest();
+updateBestUI();
+
+document.addEventListener("visibilitychange", () => {
+
+  if(!autoRoll) return;
+
+  if(document.hidden) return;
+
+  const now = Date.now();
+
+  const elapsed = now - autoRollStartTime;
+
+  const missedRolls = Math.floor(elapsed / 3000);
+
+  for(let i = 0; i < missedRolls; i++){
+
+    const final = weightedPick();
+
+    rolls++;
+    inventory[final.name] = (inventory[final.name] || 0) + 1;
+
+    if(!best || final.odds > best.odds){
+      best = {
+        name: final.name,
+        odds: final.odds
+      };
+    }
+  }
+
+  autoRollStartTime = now;
+
+  save();
+  render();
+
+  if(!running){
+    roll();
+  }
+});  
+
+/* =========================
+   AUTH SYSTEM (CLEAN)
+========================= */
+
+let authMode = "login";
+
+/* open login modal */
+function openLogin() {
+  authMode = "login";
+  authTitle.textContent = "Login";
+  authUsername.style.display = "none";
+  authModal.style.display = "flex";
+}
+
+/* open signup modal */
+function openSignup() {
+  authMode = "signup";
+  authTitle.textContent = "Create Account";
+  authUsername.style.display = "block";
+  authModal.style.display = "flex";
+}
+
+/* attach button handlers */
+loginBtn.onclick = openLogin;
+signupBtn.onclick = openSignup;
+
+/* main submit handler */
+authSubmit.onclick = async () => {
+
+  const email = authEmail.value.trim();
+  const password = authPassword.value.trim();
+  const username = authUsername.value.trim();
+
+  if (!email || !password) {
+    alert("Email and password required");
+    return;
+  }
+
+  /* =====================
+     SIGN UP FLOW
+  ===================== */
+  if (authMode === "signup") {
+
+    const result = await supabase.auth.signUp({
+      email,
+      password
+    });
+
+    if (result.error) {
+      alert(result.error.message);
+      return;
     }
 
-    save();
-    renderInventory();
+    const user = result.data.user;
+
+    await supabase
+      .from("players")
+      .insert({
+        id: user.id,
+        username: username || "Player"
+      });
+
+    currentUser = user;
+
+    await mergeLocalSave();
+
+    alert("Account created & logged in!");
   }
 
-  /* =========================
-     INVENTORY
-  ========================= */
+  /* =====================
+     LOGIN FLOW
+  ===================== */
+  else {
 
-  function renderInventory() {
-    ui.inventory.innerHTML = "";
+    const result = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
 
-    for (const v of viewers) {
-      const owned = inventory[v.id];
-
-      ui.inventory.innerHTML += `
-        <div class="card ${owned ? rarity(v.odds) : "locked"}">
-          ${
-            owned
-              ? `
-            <img src="${v.image}">
-            <div>${v.id}</div>
-            <div>1 in ${v.odds}</div>
-            <div>x${owned}</div>
-          `
-              : `
-            <div class="lockedText">???</div>
-            <div class="lockedSub">Locked</div>
-          `
-          }
-        </div>
-      `;
+    if (result.error) {
+      alert(result.error.message);
+      return;
     }
+
+    currentUser = result.data.user;
+
+    await mergeLocalSave();
+
+    alert("Logged in!");
+  }
+};
+
+/* =========================
+   CLOUD SAVE MERGE
+========================= */
+async function mergeLocalSave() {
+
+  const { data, error } = await supabase
+    .from("players")
+    .select("*")
+    .eq("id", currentUser.id)
+    .single();
+
+  if (error) {
+    console.error(error);
+    return;
   }
 
-  /* =========================
-     AUTO ROLL
-  ========================= */
+  const mergedRolls = (data.rolls || 0) + rolls;
 
-  function toggleAutoRoll() {
-    autoRoll = !autoRoll;
+  const mergedInventory = structuredClone(data.inventory || {});
 
-    if (autoRoll && !running) roll();
+  for (const id in inventory) {
+    mergedInventory[id] =
+      (mergedInventory[id] || 0) + inventory[id];
   }
 
-  /* =========================
-     AUTH (FIXED SAFE DOM ACCESS)
-  ========================= */
+  let cloudBestOdds = data.best_odds || 0;
+  let cloudBestCard = data.best_card;
 
-  let authMode = "login";
-
-  function openLogin() {
-    authMode = "login";
-    ui.authTitle.textContent = "Login";
-    ui.authUsername.style.display = "none";
-    ui.authModal.style.display = "flex";
+  if (best && best.odds > cloudBestOdds) {
+    cloudBestOdds = best.odds;
+    cloudBestCard = best.name;
   }
 
-  function openSignup() {
-    authMode = "signup";
-    ui.authTitle.textContent = "Create Account";
-    ui.authUsername.style.display = "block";
-    ui.authModal.style.display = "flex";
-  }
+  await supabase
+    .from("players")
+    .update({
+      rolls: mergedRolls,
+      inventory: mergedInventory,
+      best_card: cloudBestCard,
+      best_odds: cloudBestOdds
+    })
+    .eq("id", currentUser.id);
+}
 
-  ui.loginBtn.onclick = openLogin;
-  ui.signupBtn.onclick = openSignup;
+async function loadLeaderboard(){
 
-  ui.authSubmit.onclick = async () => {
-    const email = ui.authEmail.value;
-    const password = ui.authPassword.value;
-
-    if (authMode === "login") {
-      const { data, error } =
-        await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-
-      if (error) return alert(error.message);
-
-      currentUser = data.user;
-      alert("Logged in!");
-    } else {
-      const { data, error } =
-        await supabase.auth.signUp({
-          email,
-          password
-        });
-
-      if (error) return alert(error.message);
-
-      currentUser = data.user;
-      alert("Account created!");
-    }
-  };
-
-  /* =========================
-     LEADERBOARD
-  ========================= */
-
-  async function loadLeaderboard() {
-    const { data } = await supabase
+  const { data, error } =
+    await supabase
       .from("leaderboard")
       .select("*")
       .limit(100);
 
-    ui.leaderboard.innerHTML = "";
-
-    data.forEach((p, i) => {
-      ui.leaderboard.innerHTML += `
-        <div class="lbRow">
-          <div>${i + 1}</div>
-          <div>${p.username}</div>
-          <div>${p.rolls}</div>
-          <div>${p.best_card || "None"}</div>
-        </div>
-      `;
-    });
+  if(error){
+    console.error(error);
+    return;
   }
 
-  /* =========================
-     INIT
-  ========================= */
+  const table =
+    document.getElementById(
+      "leaderboardTable"
+    );
 
-  renderInventory();
-  show(viewers[0]);
+  table.innerHTML = `
+    <div class="lbRow lbHeader">
+      <div>#</div>
+      <div>Player</div>
+      <div>Rolls</div>
+      <div>Best Card</div>
+    </div>
+  `;
 
-  window.roll = roll;
-  window.toggleAutoRoll = toggleAutoRoll;
-  window.loadLeaderboard = loadLeaderboard;
+  data.forEach((player,index)=>{
 
-})();
+    const rarityClass =
+      rarity(player.best_odds || 0);
+
+    table.innerHTML += `
+      <div class="lbRow">
+
+        <div>
+          ${index + 1}
+        </div>
+
+        <div>
+          ${player.username}
+        </div>
+
+        <div>
+          ${Number(player.rolls).toLocaleString()}
+        </div>
+
+        <div class="best-${rarityClass}">
+          ${player.best_card || "None"}
+          ${
+            player.best_odds
+              ? `(1 in ${player.best_odds})`
+              : ""
+          }
+        </div>
+
+      </div>
+    `;
+  });
+}
+
 </script>
 <div id="cutsceneOverlay"></div>
 <div id="redLight"></div>
