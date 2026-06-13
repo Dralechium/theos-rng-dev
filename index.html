@@ -396,10 +396,6 @@ html, body {
     0 0 16px currentColor;
 }
 
-<div id="leaderboardPage" class="page">
-  <div id="leaderboard"></div>
-</div>
-
 window.loadLeaderboard = async function(){
   const { data } = await supabase
     .from("profiles")
@@ -551,6 +547,7 @@ window.loadLeaderboard = async function(){
 
     <button class="tab active" onclick="showPage('roll', this)">Roll</button>
     <button class="tab" onclick="showPage('inventory', this)">Inventory</button>
+    <button class="tab" onclick="showPage('leaderboard', this)">Leaderboard</button>
 
   </div>
 
@@ -582,22 +579,32 @@ window.loadLeaderboard = async function(){
 <div id="inventoryPage" class="page">
   <div id="inventory" class="grid"></div>
 </div>
+<div id="leaderboardPage" class="page">
+  <div id="leaderboard" style="padding:20px;"></div>
+</div>
 <script>
   function showPage(page, btn){
+
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
 
   if(page === "roll"){
     document.getElementById("rollPage").classList.add("active");
-  } else {
+  }
+
+  else if(page === "inventory"){
     document.getElementById("inventoryPage").classList.add("active");
+  }
+
+  else if(page === "leaderboard"){
+    document.getElementById("leaderboardPage").classList.add("active");
+    loadLeaderboard(); // refresh when opened
   }
 
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   btn.classList.add("active");
 
   moveBlob(btn);
-
-  save(); // optional, but safe
+  save();
 }
 
 function moveBlob(btn){
@@ -1078,24 +1085,34 @@ function closeAuth(){
 }
 
 async function submitAuth(){
-  const email = email.value;
-  const password = password.value;
-  const username = document.getElementById("username").value;
+
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const usernameInput = document.getElementById("username");
+
+  const email = emailInput.value;
+  const password = passwordInput.value;
+  const username = usernameInput.value;
 
   if(document.getElementById("authTitle").innerText === "Login"){
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email, password
+      email,
+      password
     });
 
     if(error) return alert(error.message);
 
     currentUser = data.user;
     await loadCloudData();
-    mergeLocalToCloud();
+    await mergeLocalToCloud();
     closeAuth();
+
   } else {
+
     const { data, error } = await supabase.auth.signUp({
-      email, password
+      email,
+      password
     });
 
     if(error) return alert(error.message);
@@ -1111,7 +1128,7 @@ async function submitAuth(){
     });
 
     await loadCloudData();
-    mergeLocalToCloud();
+    await mergeLocalToCloud();
     closeAuth();
   }
 }
