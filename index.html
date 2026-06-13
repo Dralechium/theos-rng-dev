@@ -458,31 +458,12 @@ html, body {
 
 <script>
   const SUPABASE_URL = "https://qihjozufbsfgqnwsrjan.supabase.co";
-  const SUPABASE_ANON_KEY = "YOUR_KEY";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpaGpvenVmYnNmZ3Fud3NyamFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNTI0NDksImV4cCI6MjA5NjkyODQ0OX0.-KTNEJ9xz7X4DPp-wxe-AhoOxslGMmXi_EB_DSn9qdg";
 
-  // ✅ CREATE CLIENT ONCE ONLY
-  const supabase = window.supabase.createClient(
+  window.supabase = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY
   );
-
-  // restore session on page load
-  supabase.auth.getSession().then(({ data }) => {
-    currentUser = data.session?.user || null;
-    renderAuthUI();
-  
-    if (currentUser) {
-      loadCloudData();
-    }
-  });
-  
-  // listen for login/logout changes
-  supabase.auth.onAuthStateChange((_event, session) => {
-    currentUser = session?.user || null;
-    renderAuthUI();
-  
-    if (currentUser) loadCloudData();
-  });
 </script>
 
 </head>
@@ -1167,7 +1148,7 @@ async function submitAuth(){
     });
 
     if(error) return alert(error.message);
-    
+
     currentUser = data.user;
     await loadCloudData();
     await mergeLocalToCloud();
@@ -1246,13 +1227,6 @@ async function loadCloudData(){
 
   document.getElementById("rolls").innerText = rolls;
 }
-
-supabase.auth.onAuthStateChange((_event, session) => {
-  currentUser = session?.user || null;
-  renderAuthUI();
-
-  if (currentUser) loadCloudData();
-});
 
 function save(){
   localStorage.setItem("inv", JSON.stringify(inventory));
