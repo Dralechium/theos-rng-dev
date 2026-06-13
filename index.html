@@ -1200,10 +1200,11 @@ async function mergeLocalToCloud() {
 
   await supabase
     .from("profiles")
-    .update({
+    .upsert({
+      id: currentUser.id,
       rolls: mergedRolls,
       inventory: mergedInv
-    })
+    });
   localStorage.setItem(LOCAL_SYNC_FLAG, "1");
  
   // clear local AFTER merge
@@ -1255,14 +1256,16 @@ async function submitAuth(){
     currentUser = data.user;
     
     // CREATE row (NOT update)
-    await supabase.from("profiles").insert({
-      id: currentUser.id,
-      username,
-      rolls,
-      best_name: best?.name || null,
-      best_odds: best?.odds || null,
-      inventory
-    });
+    await supabase
+      .from("profiles")
+      .upsert({
+        id: currentUser.id,
+        username,
+        rolls,
+        best_name: best?.name || null,
+        best_odds: best?.odds || null,
+        inventory
+      });
     
     await loadCloudData();
     renderAuthUI();   // 👈 ADD THIS
@@ -1314,6 +1317,16 @@ async function save(){
     window.loadLeaderboard();
   }
 
+  await supabase
+    .from("profiles")
+    .upsert({
+      id: currentUser.id,
+      rolls,
+      best_name: best?.name || null,
+      best_odds: best?.odds || null,
+      inventory
+    });
+  
   // cloud sync
   if(currentUser && window.cloudReady){
     const { error } = await supabase
