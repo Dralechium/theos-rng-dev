@@ -459,6 +459,13 @@ html, body {
 <script>
   const SUPABASE_URL = "https://qihjozufbsfgqnwsrjan.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpaGpvenVmYnNmZ3Fud3NyamFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNTI0NDksImV4cCI6MjA5NjkyODQ0OX0.-KTNEJ9xz7X4DPp-wxe-AhoOxslGMmXi_EB_DSn9qdg";
+  
+const supabase = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+  // restore session on page load
   supabase.auth.getSession().then(({ data }) => {
     currentUser = data.session?.user || null;
     renderAuthUI();
@@ -467,11 +474,16 @@ html, body {
       loadCloudData();
     }
   });
-
-  window.supabase = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-  );
+  
+  // listen for login/logout changes
+  supabase.auth.onAuthStateChange((_event, session) => {
+    currentUser = session?.user || null;
+    renderAuthUI();
+  
+    if (currentUser) {
+      loadCloudData();
+    }
+  });
 </script>
 
 </head>
