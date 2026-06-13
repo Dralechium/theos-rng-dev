@@ -838,10 +838,13 @@ const SAVE_VERSION = 1;
 const SUPABASE_URL = "https://fbrhajuyjematnzgddec.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZicmhhanV5amVtYXRuemdkZGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNDU0NjcsImV4cCI6MjA5NjkyMTQ2N30.KQa8fszD-jwB2jmncq9Qcpf_Qn5vQLl9PxWJM03aqWs";
 
-const supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+window.supabaseClient = window.supabaseClient ||
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+
+const supabase = window.supabaseClient;
 
 let currentUser = null;
 const MIGRATION_FLAG_KEY = "migration_v" + SAVE_VERSION + "_done";
