@@ -751,6 +751,7 @@ if (savedVersion < SAVE_VERSION) {
 }
 
 document.getElementById("rolls").innerText = rolls;
+render();
 let currentUser = null;
 
 window.loadLeaderboard = async function(){
@@ -1284,7 +1285,7 @@ async function loadCloudData(){
   const localInv = JSON.parse(localStorage.getItem("inv") || "{}");
   
   rolls = Math.max(data.rolls ?? 0, localRolls);
-  inventory = Object.keys(localInv).length ? localInv : (data.inventory ?? {});
+  inventory = data.inventory ?? {};
 
   if(data.best_name){
     best = {
@@ -1304,7 +1305,7 @@ async function loadCloudData(){
   window.cloudReady = true;
 }
 
-function save(){
+async function save(){
 
   // ALWAYS save locally first
   localStorage.setItem("inv", JSON.stringify(inventory));
@@ -1315,7 +1316,7 @@ function save(){
   if (currentUser && cloudReady === true && navigator.onLine) {
     console.log("Saving to cloud...", { rolls, inventory });
 
-    supabase.from("profiles")
+    await supabase.from("profiles")
       .update({
         rolls: rolls,
         best_name: best?.name || null,
@@ -1323,8 +1324,9 @@ function save(){
         inventory: inventory
       })
       .eq("id", currentUser.id);
-      if (currentUser && cloudReady) {
-      window.loadLeaderboard?.();
+    await window.loadLeaderboard?.();
+    if (currentUser && cloudReady) {
+    window.loadLeaderboard?.();
     }
   }
 }
@@ -1560,7 +1562,7 @@ document.addEventListener("visibilitychange", () => {
     const final = weightedPick();
 
     rolls++;
-    inventory[final.name] = (inventory[final.name] || 0) + 1;
+    inventory[final.id] = (inventory[final.id] || 0) + 1;
 
     if(!best || final.odds > best.odds){
       best = {
