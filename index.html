@@ -42,6 +42,15 @@ body{
   will-change: transform, opacity;
 }
 
+#cutscene{
+  position: fixed;
+  inset: 0;
+  background: black;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
 @keyframes sparklePulse {
   0% {
     transform: translate(-50%, -50%) scale(0.9) rotate(0deg);
@@ -57,6 +66,22 @@ body{
     transform: translate(-50%, -50%) scale(0.9) rotate(0deg);
     opacity: 0.7;
   }
+}
+
+@keyframes flashPurple {
+  0% { opacity: 0; background: black; }
+  20% { opacity: 1; background: #7a00ff; }
+  40% { opacity: 0; }
+  60% { opacity: 1; background: #7a00ff; }
+  100% { opacity: 0; }
+}
+
+@keyframes flashRed {
+  0% { opacity: 0; background: black; }
+  25% { opacity: 1; background: red; }
+  50% { opacity: 0; }
+  75% { opacity: 1; background: darkred; }
+  100% { opacity: 0; }
 }
 
 @keyframes sparkleFloat{
@@ -391,6 +416,10 @@ html, body {
   transform:scale(1.1);
 }
 
+.card{
+  position:relative;
+}
+
 .card:hover{
   transform: scale(1.03);
 }
@@ -403,6 +432,11 @@ html, body {
   justify-content:center;
   gap:6px;
   position:relative;
+}
+
+.card.locked img{
+  filter:blur(8px) grayscale(1);
+  transform:scale(1.1);
 }
 
 /* big ??? in center */
@@ -521,7 +555,6 @@ html, body {
   <div id="leaderboard" style="padding:20px;"></div>
 </div>
 <script>
-  const $ = id => document.getElementById(id);
   function showPage(page, btn){
 
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
@@ -559,6 +592,7 @@ function moveBlob(btn){
   blob.style.left = left + "px";
 }
 
+let cloudReady = false;
 window.cloudReady = false;
 let autoRollStartTime = null;
   
@@ -692,12 +726,13 @@ const cardMigrations = {
 };
 
 /* RARITY */
-const rarity=o=>
-  o<=16?"common":
-  o<=64?"rare":
-  o<=500?"epic":
-  o<=1024?"legendary":
-  "mythic";
+function rarity(o){
+  if(o<=16) return "common";
+  if(o<=64) return "rare";
+  if(o<=500) return "epic";
+  if(o<=1024) return "legendary";
+  return "mythic";
+}
 
 /* DATA */
 const SAVE_VERSION = 1;
@@ -715,7 +750,7 @@ if (savedVersion < SAVE_VERSION) {
   localStorage.removeItem("best");
 }
 
-$("rolls").innerText = rolls;
+document.getElementById("rolls").innerText = rolls;
 let currentUser = null;
 
 window.loadLeaderboard = async function(){
@@ -753,6 +788,20 @@ window.loadLeaderboard = async function(){
 
 
 /* RNG */
+function pick(){
+  // weighted selection so commons appear more often during flicker
+  const weights = viewers.map(v => 1 / v.odds);
+
+  let total = weights.reduce((a,b)=>a+b,0);
+  let r = Math.random() * total;
+
+  for(let i = 0; i < viewers.length; i++){
+    r -= weights[i];
+    if(r <= 0) return viewers[i];
+  }
+
+  return viewers[0];
+}
 
 function migrateInventoryCards() {
   const newInv = {};
@@ -775,6 +824,7 @@ function migrateInventoryCards() {
 /* ROLL */
 let running=false;
 let autoRoll = false;
+let autoRollTimer = null;
 
 function toggleAutoRoll(){
 
@@ -882,7 +932,8 @@ function roll(){
 
 /* SHOW */
 function show(v){
-  const display = $("display");
+  const display = document.getElementById("display");
+
   document.getElementById("img").src = v.image;
   document.getElementById("name").innerText = v.id;
   document.getElementById("odds").innerText = "1 in " + v.odds;
@@ -1098,16 +1149,14 @@ async function logout(){
   await supabase.auth.signOut();
 
   currentUser = null;
-  window.cloudReady = false;
+  cloudReady = false;
 
   // 🔥 CLEAR LOCAL COMPLETELY (NO DUPES EVER)
   inventory = {};
   rolls = 0;
   best = null;
 
-  localStorage.removeItem("inv");
-  localStorage.removeItem("rolls");
-  localStorage.removeItem("best");
+  localStorage.clear();
 
   document.getElementById("rolls").innerText = "0";
   updateBestUI();
@@ -1153,12 +1202,11 @@ async function mergeLocalToCloud() {
     })
     .eq("id", currentUser.id);
 
-  localStorage.setItem(LOCAL_SYNC_FLAG, "1");
-  
   // clear local AFTER merge
   localStorage.setItem("rolls", "0");
   localStorage.setItem("inv", JSON.stringify({}));
 }
+localStorage.setItem(LOCAL_SYNC_FLAG, "1");
 
 async function submitAuth(){
 
@@ -1181,10 +1229,12 @@ async function submitAuth(){
 
     currentUser = data.user;
     
-    await loadCloudData();
+    await loadCloudData();   // load cloud FIRST
+    
+    // merge AFTER load (only if local exists)
     await mergeLocalToCloud();
-    await loadCloudData();
-    window.cloudReady = true;
+    
+    await loadCloudData();   // re-sync final state
     
     renderAuthUI();
     closeAuth();
@@ -1225,10 +1275,7 @@ async function loadCloudData(){
   if(!data) return;
 
   rolls = data.rolls ?? 0;
-  inventory = data.inventory ?? {};
-  
-  localStorage.setItem("inv", JSON.stringify(inventory));
-  localStorage.setItem("rolls", rolls);
+  inventory = data.inventory ?? {};  // 🔥 IMPORTANT FIX
 
   if(data.best_name){
     best = {
@@ -1239,34 +1286,30 @@ async function loadCloudData(){
   }
 
   document.getElementById("rolls").innerText = rolls;
+  cloudReady = true;
   window.cloudReady = true;
-  window.cloudReady = true;
-}
-
-function updateCloud(){
-  if(!currentUser||!window.cloudReady)return;
-
-  supabase.from("profiles")
-    .update({
-      rolls,
-      best_name:best?.name||null,
-      best_odds:best?.odds||null,
-      inventory
-    })
-    .eq("id",currentUser.id);
 }
 
 function save(){
 
+  // ALWAYS save locally first
   localStorage.setItem("inv", JSON.stringify(inventory));
   localStorage.setItem("rolls", rolls);
   localStorage.setItem("best", JSON.stringify(best));
   localStorage.setItem("saveVersion", SAVE_VERSION);
 
-  // 🚫 NEVER push to cloud during initial load
-  if(!currentUser || !window.cloudReady) return;
+  // ❌ ONLY sync to cloud if user is fully ACTIVE
+  if(currentUser && window.cloudReady){
 
-  updateCloud();
+    supabase.from("profiles")
+      .update({
+        rolls: rolls,
+        best_name: best?.name || null,
+        best_odds: best?.odds || null,
+        inventory: inventory
+      })
+      .eq("id", currentUser.id);
+  }
 }
 
 /* START */
@@ -1312,6 +1355,16 @@ window.cutscene = function(type){
   // trigger cutscene
   playCutscene(type);
 };
+
+supabase.auth.getSession().then(({ data }) => {
+  if (data.session) {
+    currentUser = data.session.user;
+    renderAuthUI();
+    loadCloudData();
+  } else {
+    renderAuthUI();
+  }
+});
 
 function easeInExpo(t){
   return t === 0 ? 0 : Math.pow(2, 10 * (t - 1));
