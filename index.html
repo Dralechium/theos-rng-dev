@@ -1164,9 +1164,16 @@ function renderAuthUI(){
 
     const username =
       currentUser.user_metadata?.username ||
-      currentUser.email.split("@")[0];
+      currentUser.username ||
+      "Unknown";
 
-    userBox.textContent = username;
+    supabase.from("profiles")
+      .select("username")
+      .eq("id", currentUser.id)
+      .single()
+      .then(({ data }) => {
+        userBox.textContent = data?.username || "Unknown";
+      });
     userBox.style.color = "#42ff29";
 
     logoutBtn.style.display = "inline-block";
@@ -1309,7 +1316,7 @@ async function submitAuth(){
     
     await supabase.from("profiles").upsert({
       id: currentUser.id,
-      username,
+      username: username,   // <- keep this exact
       rolls: rolls || 0,
       best_name: best?.name || null,
       best_odds: best?.odds || null,
@@ -1339,6 +1346,9 @@ async function loadCloudData(){
   
   rolls = Math.max(data.rolls ?? 0, localRolls);
   inventory = data.inventory ?? {};
+  currentUser.user_metadata = {
+    username: data.username
+  };
 
   if(data.best_name){
     best = {
