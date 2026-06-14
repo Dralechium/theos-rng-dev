@@ -523,6 +523,72 @@ html, body {
   color:white;
 }
 
+/* =========================
+   LEADERBOARD TABLE UI
+========================= */
+
+#leaderboard {
+  padding: 20px;
+}
+
+/* header row */
+.lbHeader {
+  display: grid;
+  grid-template-columns: 80px 1.5fr 120px 200px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+
+  color: #42ff29;
+  font-weight: bold;
+
+  border: 2px solid #42ff29;
+  border-radius: 12px;
+  box-shadow: 0 0 12px rgba(66,255,41,0.35);
+
+  background: #0b0b0b;
+}
+
+/* each leaderboard row */
+.lbRow {
+  display: grid;
+  grid-template-columns: 80px 1.5fr 120px 200px;
+  align-items: center;
+
+  padding: 14px 16px;
+  margin-bottom: 10px;
+
+  background: #000;
+  border: 2px solid #42ff29;
+  border-radius: 14px;
+
+  box-shadow: 0 0 10px rgba(66,255,41,0.25);
+
+  transition: 0.2s ease;
+}
+
+.lbRow:hover {
+  transform: scale(1.01);
+  box-shadow: 0 0 16px rgba(66,255,41,0.45);
+}
+
+/* cells */
+.lbCell {
+  text-align: center;
+  font-size: 15px;
+}
+
+.lbName {
+  text-align: left;
+  padding-left: 10px;
+}
+
+/* best card rarity colors */
+.lb-common { color: gray; }
+.lb-rare { color: #4da6ff; }
+.lb-epic { color: #b84dff; }
+.lb-legendary { color: gold; }
+.lb-mythic { color: red; }
+
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -808,37 +874,54 @@ document.getElementById("rolls").innerText = rolls;
 render();
 let currentUser = null;
 
-window.loadLeaderboard = async function(){
+window.loadLeaderboard = async function () {
   const { data } = await supabase
     .from("profiles")
     .select("*")
-    .order("rolls", { ascending:false });
+    .order("rolls", { ascending: false });
 
-  let html = "<h2>Leaderboard</h2>";
+  if (!data) return;
 
+  const container = document.getElementById("leaderboard");
+
+  let html = "";
+
+  // HEADER
+  html += `
+    <div class="lbHeader">
+      <div>Rank</div>
+      <div>Name</div>
+      <div>Rolls</div>
+      <div>Best Card</div>
+    </div>
+  `;
+
+  // ROWS
   data.forEach((u, i) => {
-  
     const rolls = u.rolls ?? 0;
     const bestName = u.best_name ?? "None";
     const bestOdds = u.best_odds ?? Infinity;
-  
+
+    const r =
+      bestOdds <= 16 ? "common" :
+      bestOdds <= 64 ? "rare" :
+      bestOdds <= 500 ? "epic" :
+      bestOdds <= 1024 ? "legendary" :
+      "mythic";
+
     html += `
-      <div style="display:flex;gap:20px;padding:6px;">
-        <div>#${i+1} ${u.username}</div>
-        <div>${rolls}</div>
-        <div style="color:${
-          bestOdds <= 16 ? "gray" :
-          bestOdds <= 64 ? "#4da6ff" :
-          bestOdds <= 500 ? "#b84dff" :
-          bestOdds <= 1024 ? "gold" : "red"
-        }">
+      <div class="lbRow">
+        <div class="lbCell">#${i + 1}</div>
+        <div class="lbCell lbName">${u.username || "Unknown"}</div>
+        <div class="lbCell">${rolls}</div>
+        <div class="lbCell lb-${r}">
           ${bestName}
         </div>
       </div>
     `;
   });
 
-  document.getElementById("leaderboard").innerHTML = html;
+  container.innerHTML = html;
 };
 
 
