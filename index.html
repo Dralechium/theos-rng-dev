@@ -460,11 +460,10 @@ html, body {
   const SUPABASE_URL = "https://qihjozufbsfgqnwsrjan.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpaGpvenVmYnNmZ3Fud3NyamFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNTI0NDksImV4cCI6MjA5NjkyODQ0OX0.-KTNEJ9xz7X4DPp-wxe-AhoOxslGMmXi_EB_DSn9qdg";
 
-  const supabase = window.supabase.createClient(
+  window.supabase = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY
   );
-  window.supabaseClient = supabase;
 </script>
 
 </head>
