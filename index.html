@@ -613,6 +613,10 @@ html, body {
   width: 320px;
   border: 2px solid #42ff29;
   box-shadow: 0 0 18px rgba(66,255,41,0.25);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;   /* 👈 THIS centers everything */
 }
 
 .authBox h2 {
@@ -624,6 +628,7 @@ html, body {
 
 .authInput {
   width: 100%;
+  box-sizing: border-box; /* IMPORTANT FIX */
   margin: 8px 0;
   padding: 10px;
 
@@ -1834,9 +1839,9 @@ document.addEventListener("visibilitychange", () => {
 
     <h2 id="authTitle">Login</h2>
 
-    <input id="email" class="authInput" placeholder="Email">
-    <input id="password" class="authInput" type="password" placeholder="Password">
-    <input id="username" class="authInput" placeholder="Username (only signup)" style="display:none;">
+    <input id="email" class="authInput" placeholder="Enter Email...">
+    <input id="username" class="authInput" placeholder="Create Username..." style="display:none;">
+    <input id="password" class="authInput" type="password" placeholder="Create Password...">
 
     <button onclick="submitAuth()" class="authSubmit">Submit</button>
 
