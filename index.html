@@ -1205,8 +1205,9 @@ async function mergeLocalToCloud() {
   // clear local AFTER merge
   localStorage.setItem("rolls", "0");
   localStorage.setItem("inv", JSON.stringify({}));
+
+  localStorage.setItem(LOCAL_SYNC_FLAG, "1");
 }
-localStorage.setItem(LOCAL_SYNC_FLAG, "1");
 
 async function submitAuth(){
 
@@ -1229,12 +1230,14 @@ async function submitAuth(){
 
     currentUser = data.user;
     
-    await loadCloudData();   // load cloud FIRST
+    // 1. load cloud first
+    await loadCloudData();
     
-    // merge AFTER load (only if local exists)
+    // 2. merge local → cloud
     await mergeLocalToCloud();
     
-    await loadCloudData();   // re-sync final state
+    // 3. reload FINAL cloud state
+    await loadCloudData();
     
     renderAuthUI();
     closeAuth();
@@ -1274,8 +1277,14 @@ async function loadCloudData(){
 
   if(!data) return;
 
-  rolls = data.rolls ?? 0;
-  inventory = data.inventory ?? {};  // 🔥 IMPORTANT FIX
+  if (!currentUser) return;
+  
+  // only trust cloud if local is empty OR first login sync
+  const localRolls = Number(localStorage.getItem("rolls") || 0);
+  const localInv = JSON.parse(localStorage.getItem("inv") || "{}");
+  
+  rolls = Math.max(data.rolls ?? 0, localRolls);
+  inventory = Object.keys(localInv).length ? localInv : (data.inventory ?? {});
 
   if(data.best_name){
     best = {
@@ -1298,8 +1307,8 @@ function save(){
   localStorage.setItem("best", JSON.stringify(best));
   localStorage.setItem("saveVersion", SAVE_VERSION);
 
-  // ❌ ONLY sync to cloud if user is fully ACTIVE
-  if(currentUser && window.cloudReady){
+  if (currentUser && cloudReady === true && navigator.onLine) {
+    console.log("Saving to cloud...", { rolls, inventory });
 
     supabase.from("profiles")
       .update({
