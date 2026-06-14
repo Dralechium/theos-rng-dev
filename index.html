@@ -1105,7 +1105,9 @@ async function logout(){
   rolls = 0;
   best = null;
 
-  localStorage.clear();
+  localStorage.removeItem("inv");
+  localStorage.removeItem("rolls");
+  localStorage.removeItem("best");
 
   document.getElementById("rolls").innerText = "0";
   updateBestUI();
@@ -1151,11 +1153,12 @@ async function mergeLocalToCloud() {
     })
     .eq("id", currentUser.id);
 
+  localStorage.setItem(LOCAL_SYNC_FLAG, "1");
+  
   // clear local AFTER merge
   localStorage.setItem("rolls", "0");
   localStorage.setItem("inv", JSON.stringify({}));
 }
-localStorage.setItem(LOCAL_SYNC_FLAG, "1");
 
 async function submitAuth(){
 
@@ -1178,12 +1181,10 @@ async function submitAuth(){
 
     currentUser = data.user;
     
-    await loadCloudData();   // load cloud FIRST
-    
-    // merge AFTER load (only if local exists)
+    await loadCloudData();
     await mergeLocalToCloud();
-    
-    await loadCloudData();   // re-sync final state
+    await loadCloudData();
+    window.cloudReady = true;
     
     renderAuthUI();
     closeAuth();
@@ -1224,7 +1225,10 @@ async function loadCloudData(){
   if(!data) return;
 
   rolls = data.rolls ?? 0;
-  inventory = data.inventory ?? {};  // 🔥 IMPORTANT FIX
+  inventory = data.inventory ?? {};
+  
+  localStorage.setItem("inv", JSON.stringify(inventory));
+  localStorage.setItem("rolls", rolls);
 
   if(data.best_name){
     best = {
@@ -1254,13 +1258,14 @@ function updateCloud(){
 
 function save(){
 
-  // ALWAYS save locally first
   localStorage.setItem("inv", JSON.stringify(inventory));
   localStorage.setItem("rolls", rolls);
   localStorage.setItem("best", JSON.stringify(best));
   localStorage.setItem("saveVersion", SAVE_VERSION);
 
-  // ❌ ONLY sync to cloud if user is fully ACTIVE
+  // 🚫 NEVER push to cloud during initial load
+  if(!currentUser || !window.cloudReady) return;
+
   updateCloud();
 }
 
