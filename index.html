@@ -525,7 +525,7 @@ html, body {
   
     <h1>theos RNG</h1>
   
-    <div id="userBox"
+    <div id="userBox">
       <span id="usernameDisplay"></span>
       <button id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
       <div id="authButtons"></div>
@@ -1124,6 +1124,8 @@ function renderAuthUI(){
   const userBox = document.getElementById("usernameDisplay");
   const logoutBtn = document.getElementById("logoutBtn");
 
+  if(!authBox || !userBox || !logoutBtn) return;
+  
   if(currentUser){
 
     const username =
