@@ -1521,7 +1521,8 @@ async function submitAuth(){
     
     await supabase.from("profiles").upsert({
       id: currentUser.id,
-      username: username,   // <- keep this exact
+      username: username,
+      email: email,
       rolls: rolls || 0,
       best_name: best?.name || null,
       best_odds: best?.odds || null,
