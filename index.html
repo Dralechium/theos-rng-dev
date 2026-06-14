@@ -1259,7 +1259,7 @@ async function submitAuth(){
       rolls: rolls || 0,
       best_name: best?.name || null,
       best_odds: best?.odds || null,
-      inventory: inventory || {}
+      inventory: inventory ?? {}
     });
     
     await loadCloudData();
@@ -1292,6 +1292,11 @@ async function loadCloudData(){
       odds: data.best_odds
     };
     updateBestUI();
+    cloudReady = true;
+    window.cloudReady = true;
+    
+    // force leaderboard refresh immediately
+    window.loadLeaderboard?.();
   }
 
   document.getElementById("rolls").innerText = rolls;
@@ -1318,6 +1323,9 @@ function save(){
         inventory: inventory
       })
       .eq("id", currentUser.id);
+      if (currentUser && cloudReady) {
+      window.loadLeaderboard?.();
+    }
   }
 }
 
