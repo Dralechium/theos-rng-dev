@@ -592,6 +592,98 @@ html, body {
 .lb-legendary { color: gold; }
 .lb-mythic { color: red; }
 
+/* =========================
+   AUTH MODAL STYLING (NEW)
+========================= */
+
+.authModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.authBox {
+  background: #0b0b0b;
+  padding: 25px;
+  border-radius: 14px;
+  width: 320px;
+  border: 2px solid #42ff29;
+  box-shadow: 0 0 18px rgba(66,255,41,0.25);
+}
+
+.authBox h2 {
+  color: #42ff29;
+  text-align: center;
+  margin-bottom: 15px;
+  text-shadow: 0 0 10px rgba(66,255,41,0.4);
+}
+
+.authInput {
+  width: 100%;
+  margin: 8px 0;
+  padding: 10px;
+
+  background: #000;
+  border: 2px solid #42ff29;
+  border-radius: 8px;
+
+  color: #42ff29;
+  font-family: 'Orbitron', Arial, sans-serif;
+
+  outline: none;
+}
+
+.authInput::placeholder {
+  color: rgba(66,255,41,0.5);
+}
+
+.authSubmit {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+
+  background: #42ff29;
+  border: none;
+  border-radius: 8px;
+
+  color: #0b0b0b;
+  font-family: 'Orbitron', Arial, sans-serif;
+  font-weight: bold;
+
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(66,255,41,0.35);
+  transition: 0.2s ease;
+}
+
+.authSubmit:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 18px rgba(66,255,41,0.6);
+}
+
+.authClose {
+  width: 100%;
+  padding: 8px;
+  margin-top: 8px;
+
+  background: #111;
+  border: 2px solid #555;
+  border-radius: 8px;
+
+  color: white;
+  font-family: 'Orbitron', Arial, sans-serif;
+
+  cursor: pointer;
+}
+
+.authClose:hover {
+  border-color: #42ff29;
+  color: #42ff29;
+}
+
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1735,51 +1827,24 @@ document.addEventListener("visibilitychange", () => {
 <div id="cutsceneOverlay"></div>
 <div id="redLight"></div>
 </div>
-<div id="authModal" style="
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.8);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:10000;
-">
 
-  <div style="
-    background:#111;
-    padding:25px;
-    border-radius:12px;
-    width:300px;
-    border:2px solid #42ff29;
-  ">
+<div id="authModal" class="authModal">
+
+  <div class="authBox">
 
     <h2 id="authTitle">Login</h2>
 
-    <input id="email" placeholder="Email" style="width:100%;margin:6px 0;padding:8px;">
-    <input id="password" type="password" placeholder="Password" style="width:100%;margin:6px 0;padding:8px;">
-    <input id="username" placeholder="Username (only signup)" style="width:100%;margin:6px 0;padding:8px;display:none;">
+    <input id="email" class="authInput" placeholder="Email">
+    <input id="password" class="authInput" type="password" placeholder="Password">
+    <input id="username" class="authInput" placeholder="Username (only signup)" style="display:none;">
 
-    <button onclick="submitAuth()" style="
-      width:100%;
-      padding:10px;
-      background:#42ff29;
-      border:none;
-      margin-top:10px;
-      font-family:Orbitron;
-      cursor:pointer;
-    ">Submit</button>
+    <button onclick="submitAuth()" class="authSubmit">Submit</button>
 
-    <button onclick="closeAuth()" style="
-      width:100%;
-      padding:8px;
-      margin-top:6px;
-      background:#444;
-      border:none;
-      color:white;
-      cursor:pointer;
-    ">Close</button>
+    <button onclick="closeAuth()" class="authClose">Close</button>
 
   </div>
+
 </div>
+
 </body>
 </html>
