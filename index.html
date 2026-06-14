@@ -217,9 +217,13 @@ html, body {
 
 .hud{
   display:grid;
-  grid-template-columns:1fr auto 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   align-items:center;
   padding:10px 20px;
+}
+
+.hud h1{
+  text-align:center;
 }
 
 .hudBox{
@@ -240,8 +244,7 @@ html, body {
 }
 
 #bestBox{
-  margin: 10px auto;
-  display: inline-block;
+  margin-top:8px;
 }
 
 /* CENTER AREA */
@@ -493,12 +496,20 @@ html, body {
 <div class="header">
 
   <div class="hud">
-
-    <div class="hudBox" id="rollBox">
-      Rolls: <span id="rolls">0</span>
+  
+    <div>
+      <div class="hudBox" id="rollBox">
+        Rolls: <span id="rolls">0</span>
+      </div>
+  
+      <div class="hudBox" id="bestBox">
+        <span>Best:</span>
+        <span id="best">None</span>
+      </div>
     </div>
-
-    <!-- CENTER USER AREA -->
+  
+    <h1>theos RNG</h1>
+  
     <div id="userBox" style="
       display:flex;
       align-items:center;
@@ -510,11 +521,8 @@ html, body {
       <button id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
       <div id="authButtons"></div>
     </div>
-
-    <h1>theos RNG</h1>
-
+  
   </div>
-
   <!-- BEST BOX MOVED OUTSIDE HUD -->
   <div style="text-align:center; margin-top:10px;">
     <div class="hudBox" id="bestBox">
@@ -544,10 +552,6 @@ html, body {
 <div id="rollPage" class="page active">
 
   <div class="roll-area">
-    <div class="hudBox" id="bestBox">
-      <span>Best:</span>
-      <span id="best">None</span>
-    </div>
     <div id="display">
       <img id="img" src="https://i.pravatar.cc/150">
       <div id="name">Press Roll</div>
