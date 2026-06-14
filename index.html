@@ -452,6 +452,25 @@ html, body {
   color:#aaa;
 }
 
+.authBtn{
+  padding:10px 16px;
+  border-radius:8px;
+  font-family:'Orbitron';
+  border:none;
+  cursor:pointer;
+  font-size:14px;
+}
+
+.btn-green{
+  background:#42ff29;
+  color:#0b0b0b;
+}
+
+.btn-grey{
+  background:#555;
+  color:white;
+}
+
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -472,40 +491,36 @@ html, body {
 
 <!-- HEADER -->
 <div class="header">
-  <div id="authButtons" style="
-    position:absolute;
-    right:20px;
-    top:15px;
-    display:flex;
-    gap:10px;
-  ">
-    <button onclick="openLogin()" style="
-      background:#42ff29;
-      border:none;
-      padding:10px 16px;
-      border-radius:8px;
-      font-family:Orbitron;
-      cursor:pointer;
-    ">Login</button>
-  
-    <button onclick="openSignup()" style="
-      background:#777;
-      border:none;
-      padding:10px 16px;
-      border-radius:8px;
-      font-family:Orbitron;
-      cursor:pointer;
-      color:white;
-    ">Sign Up</button>
-  </div>
+
   <div class="hud">
 
     <div class="hudBox" id="rollBox">
       Rolls: <span id="rolls">0</span>
     </div>
 
+    <!-- CENTER USER AREA -->
+    <div id="userBox" style="
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+      font-weight:bold;
+    ">
+      <span id="usernameDisplay"></span>
+      <button id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
+      <div id="authButtons"></div>
+    </div>
+
     <h1>theos RNG</h1>
 
+  </div>
+
+  <!-- BEST BOX MOVED OUTSIDE HUD -->
+  <div style="text-align:center; margin-top:10px;">
+    <div class="hudBox" id="bestBox">
+      <span>Best:</span>
+      <span id="best">None</span>
+    </div>
   </div>
 
 </div>
@@ -1100,35 +1115,32 @@ function closeAuth(){
 }
 
 function renderAuthUI(){
-  const box = document.getElementById("authButtons");
+  const authBox = document.getElementById("authButtons");
+  const userBox = document.getElementById("usernameDisplay");
+  const logoutBtn = document.getElementById("logoutBtn");
 
   if(currentUser){
-    box.innerHTML = `
-      <div style="
-        color:#42ff29;
-        font-weight:bold;
-        display:flex;
-        align-items:center;
-        gap:10px;
-      ">
-        ${currentUser.email}
 
-        <button onclick="logout()" style="
-          background:#555;
-          border:none;
-          padding:8px 12px;
-          border-radius:6px;
-          color:white;
-          cursor:pointer;
-        ">
-          Logout
-        </button>
-      </div>
-    `;
+    const username =
+      currentUser.user_metadata?.username ||
+      currentUser.email.split("@")[0];
+
+    userBox.textContent = username;
+    userBox.style.color = "#42ff29";
+
+    logoutBtn.style.display = "inline-block";
+    logoutBtn.className = "authBtn btn-grey";
+
+    authBox.innerHTML = ""; // remove login/signup
+
   } else {
-    box.innerHTML = `
-      <button onclick="openLogin()">Login</button>
-      <button onclick="openSignup()">Sign Up</button>
+
+    userBox.textContent = "";
+    logoutBtn.style.display = "none";
+
+    authBox.innerHTML = `
+      <button class="authBtn btn-green" onclick="openLogin()">Login</button>
+      <button class="authBtn btn-grey" onclick="openSignup()">Sign Up</button>
     `;
   }
 }
