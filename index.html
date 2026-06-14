@@ -114,6 +114,7 @@ html, body {
   padding:15px;
   background:#111;
   border-bottom:2px solid #222;
+  overflow:hidden;
 }
 
 .nav{
@@ -188,11 +189,12 @@ html, body {
   display:block;
 }
 
-.header h1{
-  color:#42ff29;
-  text-shadow:0 0 10px #42ff29;
-  margin:0;
-  justify-self:center;
+.hud{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 20px;
+  gap:20px;
 }
 
 .best-common{
@@ -216,10 +218,11 @@ html, body {
 }  
 
 .hud{
-  display:grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  display:flex;
   align-items:center;
+  justify-content:space-between;
   padding:10px 20px;
+  gap:20px;
 }
 
 .hud h1{
@@ -280,6 +283,18 @@ html, body {
 }
 
 #odds{ color:#aaa; }
+
+#userBox{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  min-width:220px;
+}
+
+#usernameDisplay{
+  margin-right:6px;
+}
 
 .rollBtn{
   padding:18px 70px;
@@ -510,27 +525,13 @@ html, body {
   
     <h1>theos RNG</h1>
   
-    <div id="userBox" style="
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:12px;
-      font-weight:bold;
-    ">
+    <div id="userBox"
       <span id="usernameDisplay"></span>
       <button id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
       <div id="authButtons"></div>
     </div>
   
   </div>
-  <!-- BEST BOX MOVED OUTSIDE HUD -->
-  <div style="text-align:center; margin-top:10px;">
-    <div class="hudBox" id="bestBox">
-      <span>Best:</span>
-      <span id="best">None</span>
-    </div>
-  </div>
-
 </div>
 
 <!-- NAV (tabs) -->
