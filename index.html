@@ -1321,15 +1321,31 @@ function render(){
 }
 
 function openLogin(){
+
+  document.getElementById("email").value = "";
+  document.getElementById("username").value = "";
+  document.getElementById("password").value = "";
+  document.getElementById("confirmPassword").value = "";
+  
   document.getElementById("authModal").style.display = "flex";
   document.getElementById("authTitle").innerText = "Login";
+
   document.getElementById("username").style.display = "none";
+  document.getElementById("confirmPassword").style.display = "none";
 }
 
 function openSignup(){
+  
+  document.getElementById("email").value = "";
+  document.getElementById("username").value = "";
+  document.getElementById("password").value = "";
+  document.getElementById("confirmPassword").value = "";
+  
   document.getElementById("authModal").style.display = "flex";
   document.getElementById("authTitle").innerText = "Sign Up";
+
   document.getElementById("username").style.display = "block";
+  document.getElementById("confirmPassword").style.display = "block";
 }
 
 function closeAuth(){
@@ -1462,6 +1478,8 @@ async function submitAuth(){
   const email = emailInput.value;
   const password = passwordInput.value;
   const username = usernameInput.value;
+  const confirmPassword =
+  document.getElementById("confirmPassword").value;
 
   if(document.getElementById("authTitle").innerText === "Login"){
 
@@ -1487,11 +1505,12 @@ async function submitAuth(){
     closeAuth();
 
   } else {
-
+  
+    if(password !== confirmPassword){
+      return alert("Passwords do not match.");
+    }
+  
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password
-    });
 
     if(error) return alert(error.message);
 
@@ -1842,7 +1861,8 @@ document.addEventListener("visibilitychange", () => {
     <input id="email" class="authInput" placeholder="Enter Email...">
     <input id="username" class="authInput" placeholder="Create Username..." style="display:none;">
     <input id="password" class="authInput" type="password" placeholder="Enter Password...">
-
+    <input id="confirmPassword" class="authInput" type="password" placeholder="Confirm Password..." style="display:none;">
+    
     <button onclick="submitAuth()" class="authSubmit">Submit</button>
 
     <button onclick="closeAuth()" class="authClose">Close</button>
