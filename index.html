@@ -1594,6 +1594,8 @@ async function submitAuth(){
 }
 
 async function loadCloudData(){
+  if(!currentUser) return;
+
   const { data } = await supabase
     .from("profiles")
     .select("*")
@@ -1602,19 +1604,21 @@ async function loadCloudData(){
 
   if(!data) return;
 
-  if (!currentUser) return;
-  
-  // only trust cloud if local is empty OR first login sync
   const localRolls = Number(localStorage.getItem("rolls") || 0);
   const localInv = JSON.parse(localStorage.getItem("inv") || "{}");
-  
+  const localXp = Number(localStorage.getItem("xp") || 0);
+
   rolls = Math.max(data.rolls ?? 0, localRolls);
   xp = Math.max(data.xp ?? 0, localXp);
-  document.getElementById("xp").innerText = xp;
+
   inventory = data.inventory ?? {};
+
   currentUser.user_metadata = {
     username: data.username
   };
+
+  document.getElementById("rolls").innerText = rolls;
+  document.getElementById("xp").innerText = xp;
 
   if(data.best_name){
     best = {
@@ -1622,16 +1626,12 @@ async function loadCloudData(){
       odds: data.best_odds
     };
     updateBestUI();
-    cloudReady = true;
-    window.cloudReady = true;
-    
-    // force leaderboard refresh immediately
-    window.loadLeaderboard?.();
   }
 
-  document.getElementById("rolls").innerText = rolls;
   cloudReady = true;
   window.cloudReady = true;
+
+  window.loadLeaderboard?.();
 }
 
 async function save(){
