@@ -738,15 +738,17 @@ body {
 
   <div class="hud">
   
-    <div style="display:flex; gap:10px; align-items:center;">
-      <div class="hudBox" id="rollBox">
-        Rolls: <span id="rolls">0</span>
+    <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px;">
+      <div style="display:flex; gap:10px; align-items:center;">
+        <div class="hudBox" id="rollBox">
+          Rolls: <span id="rolls">0</span>
+        </div>
+      
+        <div class="hudBox" id="xpBox">
+          XP: <span id="xp">0</span>
+        </div>
       </div>
-    
-      <div class="hudBox" id="xpBox">
-        XP: <span id="xp">0</span>
-      </div>
-    
+      
       <div class="hudBox" id="bestBox">
         <span>Best:</span>
         <span id="best">None</span>
@@ -1303,7 +1305,7 @@ function migrateCardUpgrades() {
 }
 
 /* FINISH */
-function finish(v){
+async function finish(v){
 
   inventory[v.id] = (inventory[v.id] || 0) + 1;
   xp += v.odds;
@@ -1322,7 +1324,7 @@ function finish(v){
 
   if (!best || v.odds > best.odds) {
     best = { name: v.id, odds: v.odds };
-  
+
     const bestText = document.getElementById("best");
     bestText.innerText = `${best.name} (1/${best.odds})`;
 
@@ -1330,11 +1332,10 @@ function finish(v){
     bestText.classList.add("best-" + rarity(best.odds));
   }
 
-save();
-render();
-await save();
-await loadLeaderboard?.();
-
+  save();
+  render();
+  await save();
+  await loadLeaderboard?.();
 }
 
 function updateBestUI() {
