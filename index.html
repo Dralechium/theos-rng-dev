@@ -201,9 +201,9 @@ body {
   top: 0;
   bottom: 0;
 
+  height: 100%;
   left: 0;
 
-  height: 100%;
   border-radius: 999px;
 
   background: #42ff29;
@@ -211,7 +211,9 @@ body {
 
   z-index: 1;
 
-  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+              width 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+              left 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .page{
@@ -831,7 +833,11 @@ body {
 
   else if(page === "leaderboard"){
     document.getElementById("leaderboardPage").classList.add("active");
-    window.loadLeaderboard(); // refresh when opened
+    window.loadLeaderboard();
+    setTimeout(() => {
+      const active = document.querySelector("#lbNav .tab.active");
+      if(active) moveLBBlob(active);
+    }, 50);
   }
 
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
@@ -860,8 +866,8 @@ function moveLBBlob(btn){
 
   const left = btnRect.left - parentRect.left;
 
-  blob.style.width = btn.offsetWidth + "px";
-  blob.style.left = left + "px";
+  blob.style.width = btnRect.width + "px";
+  blob.style.transform = `translateX(${left}px)`;
 }
 
 function moveBlob(btn){
@@ -873,8 +879,8 @@ function moveBlob(btn){
 
   const left = btnRect.left - parentRect.left;
 
-  blob.style.width = btn.offsetWidth + "px";
-  blob.style.left = left + "px";
+  blob.style.width = btnRect.width + "px";
+  blob.style.transform = `translateX(${left}px)`;
 }
 
 let leaderboardMode = "rolls";
@@ -1308,7 +1314,8 @@ function migrateCardUpgrades() {
 async function finish(v){
 
   inventory[v.id] = (inventory[v.id] || 0) + 1;
-  recalcXP();
+  xp += v.odds;
+  
 
   const r = rarity(v.odds);
 
@@ -1331,7 +1338,6 @@ async function finish(v){
     bestText.classList.add("best-" + rarity(best.odds));
   }
 
-  save();
   render();
   await save();
   await loadLeaderboard?.();
@@ -1371,14 +1377,7 @@ function recalcBest() {
 }
 
 function recalcXP(){
-  let total = 0;
-
-  for(const v of viewers){
-    const count = inventory[v.id] || 0;
-    total += count * v.odds;
-  }
-
-  xp = total;
+  // XP is server-tracked now
   document.getElementById("xp").innerText = xp;
 }
 
@@ -1714,6 +1713,10 @@ async function init(){
 
   show(defaultViewer);
   render();
+    setTimeout(() => {
+    const first = document.querySelector("#lbNav .tab");
+    if(first) moveLBBlob(first);
+  }, 200);
 }
 
 init();
