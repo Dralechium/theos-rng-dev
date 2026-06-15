@@ -560,7 +560,7 @@ body {
 /* header row */
 .lbHeader {
   display: grid;
-  grid-template-columns: 80px 1fr 1fr 1fr;
+  grid-template-columns: 80px 1fr 1fr 1fr 1fr;
   align-items: center;
   
   padding: 12px 16px;
@@ -580,7 +580,7 @@ body {
 /* each leaderboard row */
 .lbRow {
   display: grid;
-  grid-template-columns: 80px 1fr 1fr 1fr;
+  grid-template-columns: 80px 1fr 1fr 1fr 1fr;
   align-items: center;
 
   padding: 14px 16px;
@@ -742,6 +742,9 @@ body {
       <div class="hudBox" id="rollBox">
         Rolls: <span id="rolls">0</span>
       </div>
+      <div class="hudBox" id="xpBox">
+        XP: <span id="xp">0</span>
+      </div>
   
       <div class="hudBox" id="bestBox">
         <span>Best:</span>
@@ -798,6 +801,14 @@ body {
   <div id="inventory" class="grid"></div>
 </div>
 <div id="leaderboardPage" class="page">
+
+  <div class="nav-frame">
+    <div class="nav-inner">
+      <button class="tab" onclick="setLBMode('rolls')">Rolls</button>
+      <button class="tab" onclick="setLBMode('xp')">XP</button>
+    </div>
+  </div>
+
   <div id="leaderboard" style="padding:20px;"></div>
 </div>
 <script>
@@ -825,6 +836,11 @@ body {
   save();
 }
 
+function setLBMode(mode){
+  leaderboardMode = mode;
+  window.loadLeaderboard();
+}
+
 function moveBlob(btn){
   const blob = document.getElementById("blob");
 
@@ -838,6 +854,7 @@ function moveBlob(btn){
   blob.style.left = left + "px";
 }
 
+let leaderboardMode = "rolls";
 let cloudReady = false;
 window.cloudReady = false;
 let autoRollStartTime = null;
@@ -986,6 +1003,7 @@ const MIGRATION_FLAG_KEY = "migration_v" + SAVE_VERSION + "_done";
 
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
 let rolls = Number(localStorage.getItem("rolls")||0);
+let xp = Number(localStorage.getItem("xp")||0);
 let best = null;
 
 const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
@@ -997,6 +1015,7 @@ if (savedVersion < SAVE_VERSION) {
 }
 
 document.getElementById("rolls").innerText = rolls;
+document.getElementById("xp").innerText = xp;
 render();
 let currentUser = null;
 
@@ -1004,20 +1023,21 @@ window.loadLeaderboard = async function () {
   const { data } = await supabase
     .from("profiles")
     .select("*")
-    .order("rolls", { ascending: false });
+    .order(leaderboardMode === "xp" ? "xp" : "rolls", { ascending: false });
 
   if (!data) return;
 
   const container = document.getElementById("leaderboard");
 
   let html = "";
-
+  const isXP = leaderboardMode === "xp";
   // HEADER
   html += `
     <div class="lbHeader">
       <div>Rank</div>
       <div>Name</div>
-      <div>Rolls</div>
+      <div>${isXP ? "XP" : "Rolls"}</div>
+      <div>${isXP ? "Rolls" : "XP"}</div>
       <div>Best Card</div>
     </div>
   `;
@@ -1035,11 +1055,16 @@ window.loadLeaderboard = async function () {
       bestOdds <= 1024 ? "legendary" :
       "mythic";
 
+    
+    const primary = isXP ? u.xp ?? 0 : u.rolls ?? 0;
+    const secondary = isXP ? u.rolls ?? 0 : u.xp ?? 0;
+    
     html += `
       <div class="lbRow">
         <div class="lbCell">#${i + 1}</div>
         <div class="lbCell lbName">${u.username || "Unknown"}</div>
-        <div class="lbCell">${rolls}</div>
+        <div class="lbCell">${primary}</div>
+        <div class="lbCell">${secondary}</div>
         <div class="lbCell lb-${r}">
           ${bestName}
         </div>
@@ -1260,6 +1285,8 @@ function migrateCardUpgrades() {
 function finish(v){
 
   inventory[v.id] = (inventory[v.id] || 0) + 1;
+  xp += v.odds;
+  document.getElementById("xp").innerText = xp;
 
   const r = rarity(v.odds);
 
@@ -1425,6 +1452,7 @@ async function logout(){
     await supabase.from("profiles")
       .update({
         rolls: rolls,
+        xp: xp,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
         inventory: inventory
@@ -1479,11 +1507,14 @@ async function mergeLocalToCloud() {
   }
 
   const mergedRolls = (data.rolls || 0) + localRolls;
+  const localXp = Number(localStorage.getItem("xp") || 0);
+  const mergedXp = (data.xp || 0) + localXp;
 
   await supabase
     .from("profiles")
     .update({
       rolls: mergedRolls,
+      xp: mergedXp,
       inventory: mergedInv
     })
     .eq("id", currentUser.id);
@@ -1550,6 +1581,7 @@ async function submitAuth(){
       username: username,
       email: email,
       rolls: rolls || 0,
+      xp: xp || 0,
       best_name: best?.name || null,
       best_odds: best?.odds || null,
       inventory: inventory ?? {}
@@ -1577,6 +1609,8 @@ async function loadCloudData(){
   const localInv = JSON.parse(localStorage.getItem("inv") || "{}");
   
   rolls = Math.max(data.rolls ?? 0, localRolls);
+  xp = Math.max(data.xp ?? 0, localXp);
+  document.getElementById("xp").innerText = xp;
   inventory = data.inventory ?? {};
   currentUser.user_metadata = {
     username: data.username
@@ -1605,6 +1639,7 @@ async function save(){
   // ALWAYS save locally first
   localStorage.setItem("inv", JSON.stringify(inventory));
   localStorage.setItem("rolls", rolls);
+  localStorage.setItem("xp", xp);
   localStorage.setItem("best", JSON.stringify(best));
   localStorage.setItem("saveVersion", SAVE_VERSION);
 
