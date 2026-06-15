@@ -1308,8 +1308,7 @@ function migrateCardUpgrades() {
 async function finish(v){
 
   inventory[v.id] = (inventory[v.id] || 0) + 1;
-  xp += v.odds;
-  document.getElementById("xp").innerText = xp;
+  recalcXP();
 
   const r = rarity(v.odds);
 
@@ -1371,8 +1370,21 @@ function recalcBest() {
   updateBestUI();
 }
 
+function recalcXP(){
+  let total = 0;
+
+  for(const v of viewers){
+    const count = inventory[v.id] || 0;
+    total += count * v.odds;
+  }
+
+  xp = total;
+  document.getElementById("xp").innerText = xp;
+}
+
 /* INVENTORY */
 function render(){
+  recalcXP();
   let inv = document.getElementById("inventory");
   inv.innerHTML = "";
 
@@ -1636,6 +1648,7 @@ async function loadCloudData(){
   xp = Math.max(data.xp ?? 0, localXp);
 
   inventory = data.inventory ?? {};
+  recalcXP();
 
   currentUser.user_metadata = {
     username: data.username
