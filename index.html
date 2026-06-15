@@ -199,21 +199,21 @@ body {
 .blob{
   position: absolute;
   top: 0;
-  bottom: 0;
-
-  height: 100%;
   left: 0;
 
-  border-radius: 999px;
+  height: 100%;
+  width: 0px;
 
+  border-radius: 999px;
   background: #42ff29;
   opacity: 0.25;
 
   z-index: 1;
 
+  transform: translateX(0px);
+
   transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-              width 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-              left 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+              width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .page{
@@ -857,30 +857,19 @@ function setLBMode(mode, btn){
   moveLBBlob(btn);
 }
 
-function moveLBBlob(btn){
-  const blob = document.getElementById("lbBlob");
-  const parent = document.getElementById("lbNav");
-
-  const parentRect = parent.getBoundingClientRect();
-  const btnRect = btn.getBoundingClientRect();
-
-  const left = btnRect.left - parentRect.left;
-
-  blob.style.width = btnRect.width + "px";
-  blob.style.transform = `translateX(${left}px)`;
-}
-
 function moveBlob(btn){
   const blob = document.getElementById("blob");
-
   const parent = btn.parentElement;
-  const parentRect = parent.getBoundingClientRect();
-  const btnRect = btn.getBoundingClientRect();
 
-  const left = btnRect.left - parentRect.left;
+  blob.style.width = btn.offsetWidth + "px";
+  blob.style.transform = `translateX(${btn.offsetLeft}px)`;
+}
 
-  blob.style.width = btnRect.width + "px";
-  blob.style.transform = `translateX(${left}px)`;
+function moveLBBlob(btn){
+  const blob = document.getElementById("lbBlob");
+
+  blob.style.width = btn.offsetWidth + "px";
+  blob.style.transform = `translateX(${btn.offsetLeft}px)`;
 }
 
 let leaderboardMode = "rolls";
@@ -1643,8 +1632,8 @@ async function loadCloudData(){
   const localInv = JSON.parse(localStorage.getItem("inv") || "{}");
   const localXp = Number(localStorage.getItem("xp") || 0);
 
-  rolls = Math.max(data.rolls ?? 0, localRolls);
-  xp = Math.max(data.xp ?? 0, localXp);
+  rolls = data.rolls ?? 0;
+  xp = data.xp ?? 0;
 
   inventory = data.inventory ?? {};
   recalcXP();
@@ -1713,10 +1702,11 @@ async function init(){
 
   show(defaultViewer);
   render();
-    setTimeout(() => {
-    const first = document.querySelector("#lbNav .tab");
-    if(first) moveLBBlob(first);
-  }, 200);
+  setTimeout(() => {
+    const active = document.querySelector("#lbNav .tab.active");
+    if (active) moveLBBlob(active);
+    else moveLBBlob(document.querySelector("#lbNav .tab"));
+  }, 50);
 }
 
 init();
