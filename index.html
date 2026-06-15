@@ -51,6 +51,25 @@ body{
   z-index: 9999;
 }
 
+#pageContainer{
+  flex:1;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+
+.page{
+  display:none;
+}
+
+.page.active{
+  display:block;
+}
+
+#rollPage{
+  overflow-y:auto;
+}
+
 @keyframes sparklePulse {
   0% {
     transform: translate(-50%, -50%) scale(0.9) rotate(0deg);
@@ -105,6 +124,12 @@ body{
 
 html, body {
   height: 100%;
+  margin: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -191,7 +216,6 @@ html, body {
 
 .page{
   display:none;
-  height: calc(100vh - 180px);
   overflow-y: auto;
 }
 
@@ -750,7 +774,7 @@ html, body {
   </div>
 
 </div>
-
+<div id="pageContainer">
 <!-- GAME -->
 <div id="rollPage" class="page active">
 
@@ -1854,6 +1878,7 @@ document.addEventListener("visibilitychange", () => {
 });  
 
 </script>
+</div>
 <div id="cutsceneOverlay"></div>
 <div id="redLight"></div>
 </div>
