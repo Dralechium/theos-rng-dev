@@ -738,14 +738,15 @@ body {
 
   <div class="hud">
   
-    <div>
+    <div style="display:flex; gap:10px; align-items:center;">
       <div class="hudBox" id="rollBox">
         Rolls: <span id="rolls">0</span>
       </div>
+    
       <div class="hudBox" id="xpBox">
         XP: <span id="xp">0</span>
       </div>
-  
+    
       <div class="hudBox" id="bestBox">
         <span>Best:</span>
         <span id="best">None</span>
@@ -803,9 +804,11 @@ body {
 <div id="leaderboardPage" class="page">
 
   <div class="nav-frame">
-    <div class="nav-inner">
-      <button class="tab" onclick="setLBMode('rolls')">Rolls</button>
-      <button class="tab" onclick="setLBMode('xp')">XP</button>
+    <div class="nav-inner" id="lbNav">
+      <div class="blob" id="lbBlob"></div>
+    
+      <button class="tab active" onclick="setLBMode('rolls', this)">Rolls</button>
+      <button class="tab" onclick="setLBMode('xp', this)">XP</button>
     </div>
   </div>
 
@@ -836,9 +839,27 @@ body {
   save();
 }
 
-function setLBMode(mode){
+function setLBMode(mode, btn){
   leaderboardMode = mode;
   window.loadLeaderboard();
+
+  document.querySelectorAll("#lbNav .tab").forEach(t => t.classList.remove("active"));
+  btn.classList.add("active");
+
+  moveLBBlob(btn);
+}
+
+function moveLBBlob(btn){
+  const blob = document.getElementById("lbBlob");
+  const parent = document.getElementById("lbNav");
+
+  const parentRect = parent.getBoundingClientRect();
+  const btnRect = btn.getBoundingClientRect();
+
+  const left = btnRect.left - parentRect.left;
+
+  blob.style.width = btn.offsetWidth + "px";
+  blob.style.left = left + "px";
 }
 
 function moveBlob(btn){
@@ -1311,7 +1332,9 @@ function finish(v){
 
 save();
 render();
-  
+await save();
+await loadLeaderboard?.();
+
 }
 
 function updateBestUI() {
@@ -1452,7 +1475,7 @@ async function logout(){
     await supabase.from("profiles")
       .update({
         rolls: rolls,
-        xp: xp,
+        xp: xp, // 🔥 ADD THIS TOO
         best_name: best?.name || null,
         best_odds: best?.odds || null,
         inventory: inventory
@@ -1649,11 +1672,13 @@ async function save(){
     await supabase.from("profiles")
       .update({
         rolls: rolls,
+        xp: xp, // 🔥 ADD THIS
         best_name: best?.name || null,
         best_odds: best?.odds || null,
         inventory: inventory
       })
       .eq("id", currentUser.id);
+    
     await window.loadLeaderboard?.();
     if (currentUser && cloudReady) {
     window.loadLeaderboard?.();
