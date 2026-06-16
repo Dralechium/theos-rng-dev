@@ -58,6 +58,11 @@ body{
   flex-direction:column;
 }
 
+#leaderboardPage{
+  height:100%;
+  overflow-y:auto;
+}
+
 .page{
   display:none;
 }
@@ -344,11 +349,8 @@ body {
 }
 
 #lbNav .tab{
-  flex:1;
-}
-
-#lbBlob{
-  border-radius:0;
+  width:120px;
+  padding:0;
 }
 
 .rollBtn{
@@ -817,31 +819,38 @@ body {
 <div id="inventoryPage" class="page">
   <div id="inventory" class="grid"></div>
 </div>
-<div class="nav-frame">
+<!-- LEADERBOARD -->
+<div id="leaderboardPage" class="page">
 
-  <div class="nav-inner" id="lbNav">
+  <div class="nav-frame">
 
-    <div class="blob" id="lbBlob"></div>
+    <div class="nav-inner" id="lbNav">
 
-    <button class="tab lbTab active"
-      onclick="showLeaderboardType('rolls',this)">
-      Rolls
-    </button>
+      <div class="blob" id="lbBlob"></div>
 
-    <button class="tab lbTab"
-      onclick="showLeaderboardType('xp',this)">
-      XP
-    </button>
+      <button class="tab lbTab active"
+        onclick="showLeaderboardType('rolls',this)">
+        Rolls
+      </button>
+
+      <button class="tab lbTab"
+        onclick="showLeaderboardType('xp',this)">
+        XP
+      </button>
+
+    </div>
 
   </div>
 
-</div>
+  <div id="leaderboard"></div>
 
-<div id="leaderboard" style="padding:20px;"></div>
+</div>
 <script>
   function showPage(page, btn){
 
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById("leaderboardPage")
+  ?.classList.remove("active");
 
   if(page === "roll"){
     document.getElementById("rollPage").classList.add("active");
@@ -864,8 +873,8 @@ body {
   save();
 }
 
-function moveBlob(btn){
-  const blob = document.getElementById("blob");
+function moveBlob(btn, customBlob = null){
+  const blob = customBlob || document.getElementById("blob");
 
   const parent = btn.parentElement;
   const parentRect = parent.getBoundingClientRect();
@@ -1347,26 +1356,9 @@ function migrateCardUpgrades() {
   }
 }
 
-function showLeaderboardType(type, btn){
-
-  leaderboardMode = type;
-
-  document.querySelectorAll(".lbTab")
-    .forEach(x=>x.classList.remove("active"));
-
-  btn.classList.add("active");
-
-  const blob = document.getElementById("lbBlob");
-
-  blob.style.width = "50%";
-  blob.style.left =
-    type === "rolls"
-      ? "0%"
-      : "50%";
-
-  loadLeaderboard();
-}
-
+document.getElementById("leaderboardPage")
+?.classList.remove("active");
+  
 /* FINISH */
 function finish(v){
 
@@ -1770,10 +1762,13 @@ async function init(){
 
 init();
 window.onload = () => {
-  const firstTab = document.querySelector(".tab");
-  moveBlob(firstTab);
-};
 
+  showPage(
+    "roll",
+    document.querySelector(".nav .tab")
+  );
+
+};
 window.cutscene = function(type){
   // normalize input
   type = type.toLowerCase();
