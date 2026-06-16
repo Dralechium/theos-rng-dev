@@ -1688,6 +1688,7 @@ async function submitAuth(){
     });
     
     await loadCloudData();
+    render();
     renderAuthUI();   // 👈 ADD THIS
     closeAuth();
   }
@@ -1730,6 +1731,10 @@ async function loadCloudData(){
 
   document.getElementById("rolls").innerText = rolls;
   document.getElementById("xp").innerText = xp;
+  
+  render();
+  updateBestUI();
+  
   cloudReady = true;
   window.cloudReady = true;
 }
@@ -1786,10 +1791,12 @@ window.onload = () => {
     document.querySelector(".nav .tab")
   );
 
-  moveBlob(
-    document.querySelector(".lbTab.active"),
-    document.getElementById("lbBlob")
-  );
+  setTimeout(() => {
+    moveBlob(
+      document.querySelector(".lbTab.active"),
+      document.getElementById("lbBlob")
+    );
+  }, 100);
 
 };
   
