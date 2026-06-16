@@ -1062,6 +1062,7 @@ function rarity(o){
 
 /* DATA */
 const SAVE_VERSION = 2;
+const CLOUD_MIGRATION_VERSION = 1;
 const MIGRATION_FLAG_KEY = "migration_v" + SAVE_VERSION + "_done";
 
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
@@ -1712,6 +1713,59 @@ async function submitAuth(){
   }
 }
 
+async function migrateCloudInventory(data){
+
+  if(!currentUser) return data.inventory || {};
+
+  const oldVersion =
+    data.migration_version || 0;
+
+  if(oldVersion >= CLOUD_MIGRATION_VERSION){
+    return data.inventory || {};
+  }
+
+
+  const migrations = {
+    theosGMD: "taiago7",
+    spaceuk: "kazagd",
+    Gamingbyte444: "oblivionus123",
+    midgatal: "twkn9"
+  };
+
+
+  const oldInv = data.inventory || {};
+  const newInv = {};
+
+
+  for(const [id,count] of Object.entries(oldInv)){
+
+    const newId =
+      migrations[id] || id;
+
+    newInv[newId] =
+      (newInv[newId] || 0) + count;
+
+  }
+
+
+  await supabase
+    .from("profiles")
+    .update({
+      inventory:newInv,
+      migration_version:CLOUD_MIGRATION_VERSION
+    })
+    .eq("id",currentUser.id);
+
+
+  console.log(
+    "Cloud inventory migrated for:",
+    currentUser.id
+  );
+
+
+  return newInv;
+}
+  
 async function loadCloudData(){
   const { data } = await supabase
     .from("profiles")
@@ -1729,7 +1783,7 @@ async function loadCloudData(){
   
   rolls = Math.max(data.rolls ?? 0, localRolls);
   xp = Math.max(data.xp ?? 0, Number(localStorage.getItem("xp") || 0));
-  inventory = data.inventory ?? {};
+  inventory = await migrateCloudInventory(data);
   currentUser.user_metadata = {
     username: data.username
   };
@@ -1844,14 +1898,22 @@ window.cutscene = function(type){
   playCutscene(type);
 };
 
-supabase.auth.getSession().then(({ data }) => {
-  if (data.session) {
+supabase.auth.getSession().then(async ({ data }) => {
+
+  if(data.session){
+
     currentUser = data.session.user;
+
     renderAuthUI();
-    loadCloudData();
-  } else {
+
+    await loadCloudData();
+
+  }else{
+
     renderAuthUI();
+
   }
+
 });
 
 function easeInExpo(t){
