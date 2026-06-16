@@ -906,6 +906,9 @@ function showLeaderboardType(type, btn){
 
 let cloudReady = false;
 window.cloudReady = false;
+
+let currentUser = null;
+
 let autoRollStartTime = null;
 let leaderboardMode = "rolls";
   
@@ -1051,6 +1054,13 @@ const cardMigrations = {
   midgatal: "twkn9"
 };
 
+const cardUpgrades = {
+  theosGMD: {
+    oldOdds: 10000,
+    newOdds: 100000
+  }
+};
+
 /* RARITY */
 function rarity(o){
   if(o<=16) return "common";
@@ -1096,8 +1106,6 @@ if (!migrationDone) {
 document.getElementById("rolls").innerText = rolls;
 document.getElementById("xp").innerText = xp;
 render();
-
-let currentUser = null;
 
 window.loadLeaderboard = async function () {
 
@@ -1366,13 +1374,6 @@ function migrateOldSave() {
   inventory = newInv;
   save();
 }
-
-const cardUpgrades = {
-  theos: {
-    oldOdds: 10000,
-    newOdds: 100000
-  }
-};
 
 function getLocalDataSafe(){
   return {
