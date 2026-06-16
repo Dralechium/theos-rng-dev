@@ -199,21 +199,19 @@ body {
 .blob{
   position: absolute;
   top: 0;
+  bottom: 0;
+
   left: 0;
 
   height: 100%;
-  width: 0px;
-
   border-radius: 999px;
+
   background: #42ff29;
   opacity: 0.25;
 
   z-index: 1;
 
-  transform: translateX(0px);
-
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-              width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .page{
@@ -339,6 +337,18 @@ body {
     0 0 6px rgba(66,255,41,0.7),
     0 0 14px rgba(66,255,41,0.5),
     0 0 22px rgba(66,255,41,0.3);
+}
+
+#lbNav{
+  width:400px;
+}
+
+#lbNav .tab{
+  flex:1;
+}
+
+#lbBlob{
+  border-radius:0;
 }
 
 .rollBtn{
@@ -562,7 +572,7 @@ body {
 /* header row */
 .lbHeader {
   display: grid;
-  grid-template-columns: 80px 1fr 1fr 1fr 1fr;
+  grid-template-columns:80px 1fr 1fr 1fr 1fr;
   align-items: center;
   
   padding: 12px 16px;
@@ -740,8 +750,9 @@ body {
 
   <div class="hud">
   
-    <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px;">
-      <div style="display:flex; gap:10px; align-items:center;">
+    <div>
+      <div style="display:flex;gap:10px;">
+      
         <div class="hudBox" id="rollBox">
           Rolls: <span id="rolls">0</span>
         </div>
@@ -749,8 +760,9 @@ body {
         <div class="hudBox" id="xpBox">
           XP: <span id="xp">0</span>
         </div>
-      </div>
       
+      </div>
+  
       <div class="hudBox" id="bestBox">
         <span>Best:</span>
         <span id="best">None</span>
@@ -805,19 +817,27 @@ body {
 <div id="inventoryPage" class="page">
   <div id="inventory" class="grid"></div>
 </div>
-<div id="leaderboardPage" class="page">
+<div class="nav-frame">
 
-  <div class="nav-frame">
-    <div class="nav-inner" id="lbNav">
-      <div class="blob" id="lbBlob"></div>
-    
-      <button class="tab active" onclick="setLBMode('rolls', this)">Rolls</button>
-      <button class="tab" onclick="setLBMode('xp', this)">XP</button>
-    </div>
+  <div class="nav-inner" id="lbNav">
+
+    <div class="blob" id="lbBlob"></div>
+
+    <button class="tab lbTab active"
+      onclick="showLeaderboardType('rolls',this)">
+      Rolls
+    </button>
+
+    <button class="tab lbTab"
+      onclick="showLeaderboardType('xp',this)">
+      XP
+    </button>
+
   </div>
 
-  <div id="leaderboard" style="padding:20px;"></div>
 </div>
+
+<div id="leaderboard" style="padding:20px;"></div>
 <script>
   function showPage(page, btn){
 
@@ -832,12 +852,9 @@ body {
   }
 
   else if(page === "leaderboard"){
+    leaderboardMode = "rolls";
     document.getElementById("leaderboardPage").classList.add("active");
-    window.loadLeaderboard();
-    setTimeout(() => {
-      const active = document.querySelector("#lbNav .tab.active");
-      if(active) moveLBBlob(active);
-    }, 50);
+    window.loadLeaderboard(); // refresh when opened
   }
 
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
@@ -847,35 +864,23 @@ body {
   save();
 }
 
-function setLBMode(mode, btn){
-  leaderboardMode = mode;
-  window.loadLeaderboard();
-
-  document.querySelectorAll("#lbNav .tab").forEach(t => t.classList.remove("active"));
-  btn.classList.add("active");
-
-  moveLBBlob(btn);
-}
-
 function moveBlob(btn){
   const blob = document.getElementById("blob");
+
   const parent = btn.parentElement;
+  const parentRect = parent.getBoundingClientRect();
+  const btnRect = btn.getBoundingClientRect();
+
+  const left = btnRect.left - parentRect.left;
 
   blob.style.width = btn.offsetWidth + "px";
-  blob.style.transform = `translateX(${btn.offsetLeft}px)`;
+  blob.style.left = left + "px";
 }
 
-function moveLBBlob(btn){
-  const blob = document.getElementById("lbBlob");
-
-  blob.style.width = btn.offsetWidth + "px";
-  blob.style.transform = `translateX(${btn.offsetLeft}px)`;
-}
-
-let leaderboardMode = "rolls";
 let cloudReady = false;
 window.cloudReady = false;
 let autoRollStartTime = null;
+let leaderboardMode = "rolls";
   
 function spawnCardSparklesOn(el, rarityType){
 
@@ -973,6 +978,17 @@ function spawnCardSparklesOn(el, rarityType){
 
 const sparkleGap = 20; // 👈 change this to increase/decrease spacing
 
+function calculateXP(inv){
+
+  let total = 0;
+
+  for(const v of viewers){
+    total += (inv[v.id] || 0) * v.odds;
+  }
+
+  return total;
+}
+
 /* VIEWERS */
 const viewers = [
   {id:"duckwithsunnies", name:"duckwithsunnies", odds:2, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6ef3b0ef-bc0b-463d-a3d9-1f2a646a534f-profile_image-70x70.png"},
@@ -1038,33 +1054,53 @@ render();
 let currentUser = null;
 
 window.loadLeaderboard = async function () {
+
+  const sortColumn =
+    leaderboardMode === "xp"
+      ? "xp"
+      : "rolls";
+
   const { data } = await supabase
     .from("profiles")
     .select("*")
-    .order(leaderboardMode === "xp" ? "xp" : "rolls", { ascending: false });
+    .order(sortColumn,{ascending:false});
 
-  if (!data) return;
+  if(!data) return;
 
-  const container = document.getElementById("leaderboard");
+  const container =
+    document.getElementById("leaderboard");
 
   let html = "";
-  const isXP = leaderboardMode === "xp";
-  // HEADER
-  html += `
-    <div class="lbHeader">
-      <div>Rank</div>
-      <div>Name</div>
-      <div>${isXP ? "XP" : "Rolls"}</div>
-      <div>${isXP ? "Rolls" : "XP"}</div>
-      <div>Best Card</div>
-    </div>
-  `;
 
-  // ROWS
-  data.forEach((u, i) => {
-    const rolls = u.rolls ?? 0;
-    const bestName = u.best_name ?? "None";
-    const bestOdds = u.best_odds ?? Infinity;
+  if(leaderboardMode === "rolls"){
+
+    html += `
+      <div class="lbHeader">
+        <div>Rank</div>
+        <div>Name</div>
+        <div>Rolls</div>
+        <div>XP</div>
+        <div>Best Card</div>
+      </div>
+    `;
+
+  } else {
+
+    html += `
+      <div class="lbHeader">
+        <div>Rank</div>
+        <div>Name</div>
+        <div>XP</div>
+        <div>Rolls</div>
+        <div>Best Card</div>
+      </div>
+    `;
+  }
+
+  data.forEach((u,i)=>{
+
+    const bestName = u.best_name || "None";
+    const bestOdds = u.best_odds || 0;
 
     const r =
       bestOdds <= 16 ? "common" :
@@ -1073,19 +1109,31 @@ window.loadLeaderboard = async function () {
       bestOdds <= 1024 ? "legendary" :
       "mythic";
 
-    
-    const primary = isXP ? u.xp ?? 0 : u.rolls ?? 0;
-    const secondary = isXP ? u.rolls ?? 0 : u.xp ?? 0;
-    
     html += `
       <div class="lbRow">
-        <div class="lbCell">#${i + 1}</div>
-        <div class="lbCell lbName">${u.username || "Unknown"}</div>
-        <div class="lbCell">${primary}</div>
-        <div class="lbCell">${secondary}</div>
+
+        <div class="lbCell">#${i+1}</div>
+
+        <div class="lbCell">
+          ${u.username || "Unknown"}
+        </div>
+
+        ${
+          leaderboardMode === "rolls"
+          ? `
+            <div class="lbCell">${u.rolls || 0}</div>
+            <div class="lbCell">${u.xp || 0}</div>
+          `
+          : `
+            <div class="lbCell">${u.xp || 0}</div>
+            <div class="lbCell">${u.rolls || 0}</div>
+          `
+        }
+
         <div class="lbCell lb-${r}">
           ${bestName}
         </div>
+
       </div>
     `;
   });
@@ -1299,12 +1347,32 @@ function migrateCardUpgrades() {
   }
 }
 
+function showLeaderboardType(type, btn){
+
+  leaderboardMode = type;
+
+  document.querySelectorAll(".lbTab")
+    .forEach(x=>x.classList.remove("active"));
+
+  btn.classList.add("active");
+
+  const blob = document.getElementById("lbBlob");
+
+  blob.style.width = "50%";
+  blob.style.left =
+    type === "rolls"
+      ? "0%"
+      : "50%";
+
+  loadLeaderboard();
+}
+
 /* FINISH */
-async function finish(v){
+function finish(v){
 
   inventory[v.id] = (inventory[v.id] || 0) + 1;
   xp += v.odds;
-  
+  document.getElementById("xp").innerText = xp;
 
   const r = rarity(v.odds);
 
@@ -1319,7 +1387,7 @@ async function finish(v){
 
   if (!best || v.odds > best.odds) {
     best = { name: v.id, odds: v.odds };
-
+  
     const bestText = document.getElementById("best");
     bestText.innerText = `${best.name} (1/${best.odds})`;
 
@@ -1327,9 +1395,9 @@ async function finish(v){
     bestText.classList.add("best-" + rarity(best.odds));
   }
 
-  render();
-  await save();
-  await loadLeaderboard?.();
+save();
+render();
+  
 }
 
 function updateBestUI() {
@@ -1365,14 +1433,8 @@ function recalcBest() {
   updateBestUI();
 }
 
-function recalcXP(){
-  // XP is server-tracked now
-  document.getElementById("xp").innerText = xp;
-}
-
 /* INVENTORY */
 function render(){
-  recalcXP();
   let inv = document.getElementById("inventory");
   inv.innerHTML = "";
 
@@ -1476,7 +1538,7 @@ async function logout(){
     await supabase.from("profiles")
       .update({
         rolls: rolls,
-        xp: xp, // 🔥 ADD THIS TOO
+        xp: xp,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
         inventory: inventory
@@ -1492,11 +1554,13 @@ async function logout(){
   // 🔥 CLEAR LOCAL COMPLETELY (NO DUPES EVER)
   inventory = {};
   rolls = 0;
+  xp = 0;
   best = null;
 
   localStorage.clear();
 
   document.getElementById("rolls").innerText = "0";
+  document.getElementById("xp").innerText = "0";
   updateBestUI();
   render();
 
@@ -1519,6 +1583,8 @@ async function mergeLocalToCloud() {
 
   const local = getLocalDataSafe();
   const localRolls = local.rolls;
+  const localXP =
+    Number(localStorage.getItem("xp") || 0);
   const localInv = local.inv;
 
   const cloudInv = data.inventory || {};
@@ -1531,14 +1597,13 @@ async function mergeLocalToCloud() {
   }
 
   const mergedRolls = (data.rolls || 0) + localRolls;
-  const localXp = Number(localStorage.getItem("xp") || 0);
-  const mergedXp = (data.xp || 0) + localXp;
+  const mergedXP = (data.xp || 0) + localXP;
 
   await supabase
     .from("profiles")
     .update({
       rolls: mergedRolls,
-      xp: mergedXp,
+      xp: mergedXP,
       inventory: mergedInv
     })
     .eq("id", currentUser.id);
@@ -1546,6 +1611,7 @@ async function mergeLocalToCloud() {
   // clear local AFTER merge
   localStorage.setItem("rolls", "0");
   localStorage.setItem("inv", JSON.stringify({}));
+  localStorage.setItem("xp", "0");
 
   localStorage.setItem(LOCAL_SYNC_FLAG, "1");
 }
@@ -1618,8 +1684,6 @@ async function submitAuth(){
 }
 
 async function loadCloudData(){
-  if(!currentUser) return;
-
   const { data } = await supabase
     .from("profiles")
     .select("*")
@@ -1628,22 +1692,18 @@ async function loadCloudData(){
 
   if(!data) return;
 
+  if (!currentUser) return;
+  
+  // only trust cloud if local is empty OR first login sync
   const localRolls = Number(localStorage.getItem("rolls") || 0);
   const localInv = JSON.parse(localStorage.getItem("inv") || "{}");
-  const localXp = Number(localStorage.getItem("xp") || 0);
-
-  rolls = data.rolls ?? 0;
-  xp = data.xp ?? 0;
-
+  
+  rolls = Math.max(data.rolls ?? 0, localRolls);
+  xp = Math.max(data.xp ?? 0, Number(localStorage.getItem("xp") || 0));
   inventory = data.inventory ?? {};
-  recalcXP();
-
   currentUser.user_metadata = {
     username: data.username
   };
-
-  document.getElementById("rolls").innerText = rolls;
-  document.getElementById("xp").innerText = xp;
 
   if(data.best_name){
     best = {
@@ -1651,12 +1711,17 @@ async function loadCloudData(){
       odds: data.best_odds
     };
     updateBestUI();
+    cloudReady = true;
+    window.cloudReady = true;
+    
+    // force leaderboard refresh immediately
+    window.loadLeaderboard?.();
   }
 
+  document.getElementById("rolls").innerText = rolls;
+  document.getElementById("xp").innerText = xp;
   cloudReady = true;
   window.cloudReady = true;
-
-  window.loadLeaderboard?.();
 }
 
 async function save(){
@@ -1674,13 +1739,12 @@ async function save(){
     await supabase.from("profiles")
       .update({
         rolls: rolls,
-        xp: xp, // 🔥 ADD THIS
+        xp: xp,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
         inventory: inventory
       })
       .eq("id", currentUser.id);
-    
     await window.loadLeaderboard?.();
     if (currentUser && cloudReady) {
     window.loadLeaderboard?.();
@@ -1702,11 +1766,6 @@ async function init(){
 
   show(defaultViewer);
   render();
-  setTimeout(() => {
-    const active = document.querySelector("#lbNav .tab.active");
-    if (active) moveLBBlob(active);
-    else moveLBBlob(document.querySelector("#lbNav .tab"));
-  }, 50);
 }
 
 init();
@@ -1925,6 +1984,7 @@ document.addEventListener("visibilitychange", () => {
 
     rolls++;
     inventory[final.id] = (inventory[final.id] || 0) + 1;
+    xp += final.odds;
 
     if(!best || final.odds > best.odds){
       best = {
