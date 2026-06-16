@@ -1077,9 +1077,25 @@ if (savedVersion < SAVE_VERSION) {
   localStorage.removeItem("best");
 }
 
+const migrationDone = localStorage.getItem(MIGRATION_FLAG_KEY);
+
+if (!migrationDone) {
+
+  console.log("Running one-time migration...");
+
+  migrateInventoryCards();
+  migrateOldSave();
+  migrateCardUpgrades();
+  recalcBest();
+  save();
+
+  localStorage.setItem(MIGRATION_FLAG_KEY, "1");
+}
+
 document.getElementById("rolls").innerText = rolls;
 document.getElementById("xp").innerText = xp;
 render();
+
 let currentUser = null;
 
 window.loadLeaderboard = async function () {
@@ -1794,11 +1810,15 @@ window.onload = () => {
   );
 
   setTimeout(() => {
-    moveBlob(
-      document.querySelector(".lbTab.active"),
-      document.getElementById("lbBlob")
-    );
-  }, 100);
+
+    const lbTab = document.querySelector(".lbTab.active");
+    const lbBlob = document.getElementById("lbBlob");
+
+    if(lbTab && lbBlob){
+      moveBlob(lbTab, lbBlob);
+    }
+
+  },100);
 
 };
   
@@ -1972,21 +1992,6 @@ window.showCard = function(name){
     playCutscene(r);
   }
 };
-
-const migrationDone = localStorage.getItem(MIGRATION_FLAG_KEY);
-
-if (!migrationDone) {
-
-  console.log("Running one-time migration...");
-
-  migrateInventoryCards();
-  migrateOldSave();
-  migrateCardUpgrades();
-  recalcBest();
-  save();
-
-  localStorage.setItem(MIGRATION_FLAG_KEY, "1");
-}
 
 recalcBest();
 updateBestUI();
