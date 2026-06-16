@@ -345,11 +345,12 @@ body {
 }
 
 #lbNav{
-  width:400px;
+  width:260px;
+  min-width:260px;
 }
 
 #lbNav .tab{
-  width:120px;
+  width:130px;
   padding:0;
 }
 
@@ -874,16 +875,33 @@ body {
 }
 
 function moveBlob(btn, customBlob = null){
+
   const blob = customBlob || document.getElementById("blob");
 
   const parent = btn.parentElement;
   const parentRect = parent.getBoundingClientRect();
   const btnRect = btn.getBoundingClientRect();
 
-  const left = btnRect.left - parentRect.left;
-
   blob.style.width = btn.offsetWidth + "px";
-  blob.style.left = left + "px";
+  blob.style.left =
+    (btnRect.left - parentRect.left) + "px";
+}
+
+function showLeaderboardType(type, btn){
+
+  leaderboardMode = type;
+
+  document.querySelectorAll(".lbTab")
+    .forEach(t => t.classList.remove("active"));
+
+  btn.classList.add("active");
+
+  moveBlob(
+    btn,
+    document.getElementById("lbBlob")
+  );
+
+  loadLeaderboard();
 }
 
 let cloudReady = false;
@@ -1768,7 +1786,13 @@ window.onload = () => {
     document.querySelector(".nav .tab")
   );
 
+  moveBlob(
+    document.querySelector(".lbTab.active"),
+    document.getElementById("lbBlob")
+  );
+
 };
+  
 window.cutscene = function(type){
   // normalize input
   type = type.toLowerCase();
