@@ -974,22 +974,36 @@ const cardMigrations = {
   Gamingbyte444: "oblivionus123"
 };
 
-function migrateInventoryCards() {
+function migrateInventoryCards(){
+
   const newInv = {};
+  let changed = false;
 
-  for (const [id, count] of Object.entries(inventory)) {
+  for(const [oldId, count] of Object.entries(inventory)){
 
-    let targetId = id;
+    // find migration ignoring capitalization/spaces
+    const migrationKey = Object.keys(cardMigrations)
+      .find(key => key.trim().toLowerCase() === oldId.trim().toLowerCase());
 
-    if (cardMigrations[id]) {
-      targetId = cardMigrations[id];
+    const newId = migrationKey
+      ? cardMigrations[migrationKey]
+      : oldId;
+
+    if(newId !== oldId){
+      changed = true;
     }
 
-    newInv[targetId] = (newInv[targetId] || 0) + count;
+    newInv[newId] = (newInv[newId] || 0) + count;
   }
 
-  inventory = newInv;
-  save();
+  if(changed){
+    console.log("Card migration applied:", newInv);
+    inventory = newInv;
+    save();
+  }
+
+  render();
+  recalcBest();
 }
 
 /* RARITY */
