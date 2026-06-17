@@ -723,6 +723,7 @@ body {
   const SUPABASE_URL = "https://phkbmkvrbdnejumydfwe.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoa2Jta3ZyYmRuZWp1bXlkZndlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MTYxMzEsImV4cCI6MjA5NzI5MjEzMX0.JD8Erd295EZSlbBD5GJd6FZpORPaD6HA8WWF5zQNo9Q";
 
+
   window.supabase = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY
@@ -955,8 +956,7 @@ const viewers = [
   {id:"ChefGmd", name:"ChefGmd", odds:512, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/f6dfdec2-1ad0-4757-aa3c-c061cc5cab69-profile_image-70x70.png"},
   {id:"midgatal", name:"midgatal", odds:750, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/bc185f86-30d2-4422-b547-5f4e3c504d54-profile_image-70x70.png"},
   {id:"IVDrale", name:"IVDrale", odds:1000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6e71f426-65ca-4914-b6e8-0e5499f032cb-profile_image-70x70.png"},
-  {id:"oblivionus123", name:"oblivionus123", odds:1024, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/e89beaf6-f0fe-4ffc-b8f9-5631ff809344-profile_image-70x70.png"},
-  {id:"Gamingbyte444", name:"Gamingbyte444", odds:2048, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/a6d961bf-ece5-4464-9b1e-5a326cfebe94-profile_image-70x70.png"},
+  {id:"Gamingbyte444", name:"Gamingbyte444", odds:1024, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/a6d961bf-ece5-4464-9b1e-5a326cfebe94-profile_image-70x70.png"},
   {id:"Christ_Is_God", name:"Christ_Is_God", odds:5000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/98b31c09-fa8b-4318-88bd-ef8a0443b772-profile_image-70x70.png"},
   {id:"kazagd", name:"kazagd", odds:7500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/7725062e-c231-406a-b000-34973ce973a2-profile_image-70x70.png"},
   {id:"taiago7", name:"taiago7", odds:10000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/133319eb-8b72-40c2-89f5-4bcf9c2dfa24-profile_image-70x70.png"},
@@ -969,8 +969,7 @@ const defaultViewer = viewers[viewers.length - 1];
 const cardMigrations = {
   theosGMD: "taiago7",// oldId -> newId
   spaceuk: "kazagd",
-  midgatal: "twkn9",
-  Gamingbyte444: "oblivionus123"
+  midgatal: "twkn9"
 };
 
 /* RARITY */
@@ -983,6 +982,8 @@ function rarity(o){
 }
 
 /* DATA */
+const SAVE_VERSION = 1;
+const MIGRATION_FLAG_KEY = "migration_v" + SAVE_VERSION + "_done";
 
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
 let rolls = Number(localStorage.getItem("rolls")||0);
@@ -1067,82 +1068,22 @@ function pick(){
   return viewers[0];
 }
 
-const CARD_MIGRATION_VERSION = 1;
+function migrateInventoryCards() {
+  const newInv = {};
 
+  for (const [id, count] of Object.entries(inventory)) {
 
-async function migrateCards(){
+    let targetId = id;
 
-  const version =
-    Number(localStorage.getItem("cardMigrationVersion") || 0);
-
-
-  if(version >= CARD_MIGRATION_VERSION)
-    return;
-
-
-  function convert(inv){
-
-    if(!inv) return {};
-
-    const newInv = {};
-
-    for(const [id,count] of Object.entries(inv)){
-
-      const newID =
-        cardMigrations[id] || id;
-
-
-      newInv[newID] =
-        (newInv[newID] || 0) + count;
-
+    if (cardMigrations[id]) {
+      targetId = cardMigrations[id];
     }
 
-    return newInv;
-
+    newInv[targetId] = (newInv[targetId] || 0) + count;
   }
 
-
-  // LOCAL
-
-  inventory = convert(inventory);
-
-
-  // CLOUD
-
-  if(currentUser){
-
-    const {data} = await supabase
-      .from("profiles")
-      .select("inventory")
-      .eq("id", currentUser.id)
-      .single();
-
-
-    if(data){
-
-      await supabase
-      .from("profiles")
-      .update({
-        inventory: convert(data.inventory)
-      })
-      .eq(
-        "id",
-        currentUser.id
-      );
-
-    }
-
-  }
-
-
-  localStorage.setItem(
-    "cardMigrationVersion",
-    CARD_MIGRATION_VERSION
-  );
-
-
+  inventory = newInv;
   save();
-
 }
 
 /* ROLL */
@@ -1688,78 +1629,26 @@ async function save(){
 
 /* START */
 async function init(){
-
   const { data } = await supabase.auth.getSession();
 
   if(data.session){
-
     currentUser = data.session.user;
-
     await loadCloudData();
-
-    await migrateCards();
-
     renderAuthUI();
-
+  } else {
+    renderAuthUI();
   }
 
   show(defaultViewer);
   render();
-
 }
 
 init();
-runMigrations();
 window.onload = () => {
   const firstTab = document.querySelector(".tab");
   moveBlob(firstTab);
 };
 
-{
- id:"rename_oldcard_newcard",
-
- async run(){
-
-   function convert(inv){
-
-     if(inv.oldcard){
-
-       inv.newcard =
-       (inv.newcard || 0)
-       + inv.oldcard;
-
-       delete inv.oldcard;
-
-     }
-
-     return inv;
-   }
-
-
-   inventory = convert(inventory);
-
-
-   if(currentUser){
-
-    const {data}=await supabase
-    .from("profiles")
-    .select("inventory")
-    .eq("id",currentUser.id)
-    .single();
-
-
-    await supabase
-    .from("profiles")
-    .update({
-      inventory:convert(data.inventory)
-    })
-    .eq("id",currentUser.id);
-
-   }
-
- }
-
-}
 window.cutscene = function(type){
   // normalize input
   type = type.toLowerCase();
@@ -1931,75 +1820,23 @@ window.showCard = function(name){
   }
 };
 
-/* ============================
-   PERMANENT MIGRATION SYSTEM
-============================ */
+const migrationDone = localStorage.getItem(MIGRATION_FLAG_KEY);
 
+if (!migrationDone) {
 
-const MIGRATION_KEY = "completed_migrations";
+  console.log("Running one-time migration...");
 
-
-function getCompletedMigrations(){
-
-  return JSON.parse(
-    localStorage.getItem(MIGRATION_KEY) || "[]"
-  );
-
-}
-
-
-function markMigrationComplete(id){
-
-  const done = getCompletedMigrations();
-
-  if(!done.includes(id)){
-    done.push(id);
-  }
-
-  localStorage.setItem(
-    MIGRATION_KEY,
-    JSON.stringify(done)
-  );
-}
-
-async function runMigrations(){
-
-
-  const completed =
-    getCompletedMigrations();
-
-
-
-  for(const migration of migrations){
-
-
-    if(completed.includes(migration.id))
-      continue;
-
-
-
-    console.log(
-      "Running migration:",
-      migration.id
-    );
-
-
-    await migration.run();
-
-
-    markMigrationComplete(
-      migration.id
-    );
-
-  }
-
-
-
+  migrateInventoryCards();
+  migrateOldSave();
+  migrateCardUpgrades();
+  recalcBest();
   save();
 
-
+  localStorage.setItem(MIGRATION_FLAG_KEY, "1");
 }
 
+recalcBest();
+updateBestUI();
 window.addEventListener("load", () => {
   window.loadLeaderboard?.();
 });
