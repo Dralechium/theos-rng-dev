@@ -58,11 +58,6 @@ body{
   flex-direction:column;
 }
 
-#leaderboardPage{
-  height:100%;
-  overflow-y:auto;
-}
-
 .page{
   display:none;
 }
@@ -344,16 +339,6 @@ body {
     0 0 22px rgba(66,255,41,0.3);
 }
 
-#lbNav{
-  width:260px;
-  min-width:260px;
-}
-
-#lbNav .tab{
-  width:130px;
-  padding:0;
-}
-
 .rollBtn{
   padding:18px 70px;
   font-size:20px;
@@ -575,7 +560,7 @@ body {
 /* header row */
 .lbHeader {
   display: grid;
-  grid-template-columns:80px 1fr 1fr 1fr 1fr;
+  grid-template-columns: 80px 1fr 1fr 1fr;
   align-items: center;
   
   padding: 12px 16px;
@@ -595,7 +580,7 @@ body {
 /* each leaderboard row */
 .lbRow {
   display: grid;
-  grid-template-columns: 80px 1fr 1fr 1fr 1fr;
+  grid-template-columns: 80px 1fr 1fr 1fr;
   align-items: center;
 
   padding: 14px 16px;
@@ -735,8 +720,8 @@ body {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-  const SUPABASE_URL = "https://qihjozufbsfgqnwsrjan.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpaGpvenVmYnNmZ3Fud3NyamFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNTI0NDksImV4cCI6MjA5NjkyODQ0OX0.-KTNEJ9xz7X4DPp-wxe-AhoOxslGMmXi_EB_DSn9qdg";
+  const SUPABASE_URL = "https://phkbmkvrbdnejumydfwe.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoa2Jta3ZyYmRuZWp1bXlkZndlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MTYxMzEsImV4cCI6MjA5NzI5MjEzMX0.JD8Erd295EZSlbBD5GJd6FZpORPaD6HA8WWF5zQNo9Q";
 
   window.supabase = window.supabase.createClient(
     SUPABASE_URL,
@@ -754,16 +739,8 @@ body {
   <div class="hud">
   
     <div>
-      <div style="display:flex;gap:10px;">
-      
-        <div class="hudBox" id="rollBox">
-          Rolls: <span id="rolls">0</span>
-        </div>
-      
-        <div class="hudBox" id="xpBox">
-          XP: <span id="xp">0</span>
-        </div>
-      
+      <div class="hudBox" id="rollBox">
+        Rolls: <span id="rolls">0</span>
       </div>
   
       <div class="hudBox" id="bestBox">
@@ -820,38 +797,13 @@ body {
 <div id="inventoryPage" class="page">
   <div id="inventory" class="grid"></div>
 </div>
-<!-- LEADERBOARD -->
 <div id="leaderboardPage" class="page">
-
-  <div class="nav-frame">
-
-    <div class="nav-inner" id="lbNav">
-
-      <div class="blob" id="lbBlob"></div>
-
-      <button class="tab lbTab active"
-        onclick="showLeaderboardType('rolls',this)">
-        Rolls
-      </button>
-
-      <button class="tab lbTab"
-        onclick="showLeaderboardType('xp',this)">
-        XP
-      </button>
-
-    </div>
-
-  </div>
-
-  <div id="leaderboard"></div>
-
+  <div id="leaderboard" style="padding:20px;"></div>
 </div>
 <script>
   function showPage(page, btn){
 
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  document.getElementById("leaderboardPage")
-  ?.classList.remove("active");
 
   if(page === "roll"){
     document.getElementById("rollPage").classList.add("active");
@@ -862,7 +814,6 @@ body {
   }
 
   else if(page === "leaderboard"){
-    leaderboardMode = "rolls";
     document.getElementById("leaderboardPage").classList.add("active");
     window.loadLeaderboard(); // refresh when opened
   }
@@ -874,43 +825,22 @@ body {
   save();
 }
 
-function moveBlob(btn, customBlob = null){
-
-  const blob = customBlob || document.getElementById("blob");
+function moveBlob(btn){
+  const blob = document.getElementById("blob");
 
   const parent = btn.parentElement;
   const parentRect = parent.getBoundingClientRect();
   const btnRect = btn.getBoundingClientRect();
 
+  const left = btnRect.left - parentRect.left;
+
   blob.style.width = btn.offsetWidth + "px";
-  blob.style.left =
-    (btnRect.left - parentRect.left) + "px";
-}
-
-function showLeaderboardType(type, btn){
-
-  leaderboardMode = type;
-
-  document.querySelectorAll(".lbTab")
-    .forEach(t => t.classList.remove("active"));
-
-  btn.classList.add("active");
-
-  moveBlob(
-    btn,
-    document.getElementById("lbBlob")
-  );
-
-  loadLeaderboard();
+  blob.style.left = left + "px";
 }
 
 let cloudReady = false;
 window.cloudReady = false;
-
-let currentUser = null;
-
 let autoRollStartTime = null;
-let leaderboardMode = "rolls";
   
 function spawnCardSparklesOn(el, rarityType){
 
@@ -1008,17 +938,6 @@ function spawnCardSparklesOn(el, rarityType){
 
 const sparkleGap = 20; // 👈 change this to increase/decrease spacing
 
-function calculateXP(inv){
-
-  let total = 0;
-
-  for(const v of viewers){
-    total += (inv[v.id] || 0) * v.odds;
-  }
-
-  return total;
-}
-
 /* VIEWERS */
 const viewers = [
   {id:"duckwithsunnies", name:"duckwithsunnies", odds:2, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6ef3b0ef-bc0b-463d-a3d9-1f2a646a534f-profile_image-70x70.png"},
@@ -1036,9 +955,8 @@ const viewers = [
   {id:"ChefGmd", name:"ChefGmd", odds:512, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/f6dfdec2-1ad0-4757-aa3c-c061cc5cab69-profile_image-70x70.png"},
   {id:"midgatal", name:"midgatal", odds:750, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/bc185f86-30d2-4422-b547-5f4e3c504d54-profile_image-70x70.png"},
   {id:"IVDrale", name:"IVDrale", odds:1000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6e71f426-65ca-4914-b6e8-0e5499f032cb-profile_image-70x70.png"},
-  {id:"oblivionus123", name:"oblivionus123", odds:1024, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/e89beaf6-f0fe-4ffc-b8f9-5631ff809344-profile_image-70x70.png"},
-  {id:"Gamingbyte444", name:"Gamingbyte444", odds:2048, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/a6d961bf-ece5-4464-9b1e-5a326cfebe94-profile_image-70x70.png"},
-  {id: "Christ_Is_God", name: "Christ_Is_God", odds:5000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/98b31c09-fa8b-4318-88bd-ef8a0443b772-profile_image-70x70.png"},
+  {id:"Gamingbyte444", name:"Gamingbyte444", odds:1024, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/a6d961bf-ece5-4464-9b1e-5a326cfebe94-profile_image-70x70.png"},
+  {id:"Christ_Is_God", name:"Christ_Is_God", odds:5000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/98b31c09-fa8b-4318-88bd-ef8a0443b772-profile_image-70x70.png"},
   {id:"kazagd", name:"kazagd", odds:7500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/7725062e-c231-406a-b000-34973ce973a2-profile_image-70x70.png"},
   {id:"taiago7", name:"taiago7", odds:10000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/133319eb-8b72-40c2-89f5-4bcf9c2dfa24-profile_image-70x70.png"},
   {id:"spaceuk", name:"spaceuk", odds:50000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/66d53358-962a-4f18-8917-12a2d220e0ef-profile_image-70x70.png"},
@@ -1050,15 +968,7 @@ const defaultViewer = viewers[viewers.length - 1];
 const cardMigrations = {
   theosGMD: "taiago7",// oldId -> newId
   spaceuk: "kazagd",
-  Gamingbyte444: "oblivionus123",
   midgatal: "twkn9"
-};
-
-const cardUpgrades = {
-  theosGMD: {
-    oldOdds: 10000,
-    newOdds: 100000
-  }
 };
 
 /* RARITY */
@@ -1071,13 +981,11 @@ function rarity(o){
 }
 
 /* DATA */
-const SAVE_VERSION = 2;
-const CLOUD_MIGRATION_VERSION = 1;
+const SAVE_VERSION = 1;
 const MIGRATION_FLAG_KEY = "migration_v" + SAVE_VERSION + "_done";
 
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
 let rolls = Number(localStorage.getItem("rolls")||0);
-let xp = Number(localStorage.getItem("xp")||0);
 let best = null;
 
 const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
@@ -1088,73 +996,37 @@ if (savedVersion < SAVE_VERSION) {
   localStorage.removeItem("best");
 }
 
-const migrationDone = localStorage.getItem(MIGRATION_FLAG_KEY);
-
-if (!migrationDone) {
-
-  console.log("Running one-time migration...");
-
-  migrateInventoryCards();
-  migrateOldSave();
-  migrateCardUpgrades();
-  recalcBest();
-  save();
-
-  localStorage.setItem(MIGRATION_FLAG_KEY, "1");
-}
-
 document.getElementById("rolls").innerText = rolls;
-document.getElementById("xp").innerText = xp;
 render();
+let currentUser = null;
 
 window.loadLeaderboard = async function () {
-
-  const sortColumn =
-    leaderboardMode === "xp"
-      ? "xp"
-      : "rolls";
-
   const { data } = await supabase
     .from("profiles")
     .select("*")
-    .order(sortColumn,{ascending:false});
+    .order("rolls", { ascending: false });
 
-  if(!data) return;
+  if (!data) return;
 
-  const container =
-    document.getElementById("leaderboard");
+  const container = document.getElementById("leaderboard");
 
   let html = "";
 
-  if(leaderboardMode === "rolls"){
+  // HEADER
+  html += `
+    <div class="lbHeader">
+      <div>Rank</div>
+      <div>Name</div>
+      <div>Rolls</div>
+      <div>Best Card</div>
+    </div>
+  `;
 
-    html += `
-      <div class="lbHeader">
-        <div>Rank</div>
-        <div>Name</div>
-        <div>Rolls</div>
-        <div>XP</div>
-        <div>Best Card</div>
-      </div>
-    `;
-
-  } else {
-
-    html += `
-      <div class="lbHeader">
-        <div>Rank</div>
-        <div>Name</div>
-        <div>XP</div>
-        <div>Rolls</div>
-        <div>Best Card</div>
-      </div>
-    `;
-  }
-
-  data.forEach((u,i)=>{
-
-    const bestName = u.best_name || "None";
-    const bestOdds = u.best_odds || 0;
+  // ROWS
+  data.forEach((u, i) => {
+    const rolls = u.rolls ?? 0;
+    const bestName = u.best_name ?? "None";
+    const bestOdds = u.best_odds ?? Infinity;
 
     const r =
       bestOdds <= 16 ? "common" :
@@ -1165,29 +1037,12 @@ window.loadLeaderboard = async function () {
 
     html += `
       <div class="lbRow">
-
-        <div class="lbCell">#${i+1}</div>
-
-        <div class="lbCell">
-          ${u.username || "Unknown"}
-        </div>
-
-        ${
-          leaderboardMode === "rolls"
-          ? `
-            <div class="lbCell">${u.rolls || 0}</div>
-            <div class="lbCell">${u.xp || 0}</div>
-          `
-          : `
-            <div class="lbCell">${u.xp || 0}</div>
-            <div class="lbCell">${u.rolls || 0}</div>
-          `
-        }
-
+        <div class="lbCell">#${i + 1}</div>
+        <div class="lbCell lbName">${u.username || "Unknown"}</div>
+        <div class="lbCell">${rolls}</div>
         <div class="lbCell lb-${r}">
           ${bestName}
         </div>
-
       </div>
     `;
   });
@@ -1375,6 +1230,13 @@ function migrateOldSave() {
   save();
 }
 
+const cardUpgrades = {
+  theos: {
+    oldOdds: 10000,
+    newOdds: 100000
+  }
+};
+
 function getLocalDataSafe(){
   return {
     rolls: Number(localStorage.getItem("rolls") || 0),
@@ -1394,15 +1256,10 @@ function migrateCardUpgrades() {
   }
 }
 
-document.getElementById("leaderboardPage")
-?.classList.remove("active");
-  
 /* FINISH */
 function finish(v){
 
   inventory[v.id] = (inventory[v.id] || 0) + 1;
-  xp += v.odds;
-  document.getElementById("xp").innerText = xp;
 
   const r = rarity(v.odds);
 
@@ -1535,11 +1392,11 @@ function renderAuthUI(){
       currentUser.username ||
       "Unknown";
 
-        supabase.from("profiles")
-        .select("username")
-        .eq("id", currentUser.id)
-        .maybeSingle()
-        .then(({ data }) => {
+    supabase.from("profiles")
+      .select("username")
+      .eq("id", currentUser.id)
+      .single()
+      .then(({ data }) => {
         userBox.textContent = data?.username || "Unknown";
       });
     userBox.style.color = "#42ff29";
@@ -1568,7 +1425,6 @@ async function logout(){
     await supabase.from("profiles")
       .update({
         rolls: rolls,
-        xp: xp,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
         inventory: inventory
@@ -1584,13 +1440,11 @@ async function logout(){
   // 🔥 CLEAR LOCAL COMPLETELY (NO DUPES EVER)
   inventory = {};
   rolls = 0;
-  xp = 0;
   best = null;
 
   localStorage.clear();
 
   document.getElementById("rolls").innerText = "0";
-  document.getElementById("xp").innerText = "0";
   updateBestUI();
   render();
 
@@ -1607,32 +1461,12 @@ async function mergeLocalToCloud() {
     .from("profiles")
     .select("*")
     .eq("id", currentUser.id)
-    .maybeSingle();
-  
-  if(!data){
-  
-    await supabase
-      .from("profiles")
-      .insert({
-        id: currentUser.id,
-        username:
-          currentUser.user_metadata?.username || "Unknown",
-        email:
-          currentUser.email,
-        rolls:0,
-        xp:0,
-        inventory:{}
-      });
-  
-    return loadCloudData();
-  }
+    .single();
 
   if (!data) return;
 
   const local = getLocalDataSafe();
   const localRolls = local.rolls;
-  const localXP =
-    Number(localStorage.getItem("xp") || 0);
   const localInv = local.inv;
 
   const cloudInv = data.inventory || {};
@@ -1645,13 +1479,11 @@ async function mergeLocalToCloud() {
   }
 
   const mergedRolls = (data.rolls || 0) + localRolls;
-  const mergedXP = (data.xp || 0) + localXP;
 
   await supabase
     .from("profiles")
     .update({
       rolls: mergedRolls,
-      xp: mergedXP,
       inventory: mergedInv
     })
     .eq("id", currentUser.id);
@@ -1659,7 +1491,6 @@ async function mergeLocalToCloud() {
   // clear local AFTER merge
   localStorage.setItem("rolls", "0");
   localStorage.setItem("inv", JSON.stringify({}));
-  localStorage.setItem("xp", "0");
 
   localStorage.setItem(LOCAL_SYNC_FLAG, "1");
 }
@@ -1719,72 +1550,17 @@ async function submitAuth(){
       username: username,
       email: email,
       rolls: rolls || 0,
-      xp: xp || 0,
       best_name: best?.name || null,
       best_odds: best?.odds || null,
       inventory: inventory ?? {}
     });
     
     await loadCloudData();
-    render();
     renderAuthUI();   // 👈 ADD THIS
     closeAuth();
   }
 }
 
-async function migrateCloudInventory(data){
-
-  if(!currentUser) return data.inventory || {};
-
-  const oldVersion =
-    data.migration_version || 0;
-
-  if(oldVersion >= CLOUD_MIGRATION_VERSION){
-    return data.inventory || {};
-  }
-
-
-  const migrations = {
-    theosGMD: "taiago7",
-    spaceuk: "kazagd",
-    Gamingbyte444: "oblivionus123",
-    midgatal: "twkn9"
-  };
-
-
-  const oldInv = data.inventory || {};
-  const newInv = {};
-
-
-  for(const [id,count] of Object.entries(oldInv)){
-
-    const newId =
-      migrations[id] || id;
-
-    newInv[newId] =
-      (newInv[newId] || 0) + count;
-
-  }
-
-
-  await supabase
-    .from("profiles")
-    .update({
-      inventory:newInv,
-      migration_version:CLOUD_MIGRATION_VERSION
-    })
-    .eq("id",currentUser.id);
-
-
-  console.log(
-    "Cloud inventory migrated for:",
-    currentUser.id
-  );
-
-
-  return newInv;
-}
-  
 async function loadCloudData(){
   const { data } = await supabase
     .from("profiles")
@@ -1801,8 +1577,7 @@ async function loadCloudData(){
   const localInv = JSON.parse(localStorage.getItem("inv") || "{}");
   
   rolls = Math.max(data.rolls ?? 0, localRolls);
-  xp = Math.max(data.xp ?? 0, Number(localStorage.getItem("xp") || 0));
-  inventory = await migrateCloudInventory(data);
+  inventory = data.inventory ?? {};
   currentUser.user_metadata = {
     username: data.username
   };
@@ -1821,11 +1596,6 @@ async function loadCloudData(){
   }
 
   document.getElementById("rolls").innerText = rolls;
-  document.getElementById("xp").innerText = xp;
-  
-  render();
-  updateBestUI();
-  
   cloudReady = true;
   window.cloudReady = true;
 }
@@ -1835,7 +1605,6 @@ async function save(){
   // ALWAYS save locally first
   localStorage.setItem("inv", JSON.stringify(inventory));
   localStorage.setItem("rolls", rolls);
-  localStorage.setItem("xp", xp);
   localStorage.setItem("best", JSON.stringify(best));
   localStorage.setItem("saveVersion", SAVE_VERSION);
 
@@ -1845,7 +1614,6 @@ async function save(){
     await supabase.from("profiles")
       .update({
         rolls: rolls,
-        xp: xp,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
         inventory: inventory
@@ -1876,25 +1644,10 @@ async function init(){
 
 init();
 window.onload = () => {
-
-  showPage(
-    "roll",
-    document.querySelector(".nav .tab")
-  );
-
-  setTimeout(() => {
-
-    const lbTab = document.querySelector(".lbTab.active");
-    const lbBlob = document.getElementById("lbBlob");
-
-    if(lbTab && lbBlob){
-      moveBlob(lbTab, lbBlob);
-    }
-
-  },100);
-
+  const firstTab = document.querySelector(".tab");
+  moveBlob(firstTab);
 };
-  
+
 window.cutscene = function(type){
   // normalize input
   type = type.toLowerCase();
@@ -1917,20 +1670,14 @@ window.cutscene = function(type){
   playCutscene(type);
 };
 
-supabase.auth.getSession().then(async ({ data }) => {
-
-  if(data.session){
-
+supabase.auth.getSession().then(({ data }) => {
+  if (data.session) {
     currentUser = data.session.user;
-
     renderAuthUI();
-
-  }else{
-
+    loadCloudData();
+  } else {
     renderAuthUI();
-
   }
-
 });
 
 function easeInExpo(t){
@@ -2072,6 +1819,21 @@ window.showCard = function(name){
   }
 };
 
+const migrationDone = localStorage.getItem(MIGRATION_FLAG_KEY);
+
+if (!migrationDone) {
+
+  console.log("Running one-time migration...");
+
+  migrateInventoryCards();
+  migrateOldSave();
+  migrateCardUpgrades();
+  recalcBest();
+  save();
+
+  localStorage.setItem(MIGRATION_FLAG_KEY, "1");
+}
+
 recalcBest();
 updateBestUI();
 window.addEventListener("load", () => {
@@ -2096,7 +1858,6 @@ document.addEventListener("visibilitychange", () => {
 
     rolls++;
     inventory[final.id] = (inventory[final.id] || 0) + 1;
-    xp += final.odds;
 
     if(!best || final.odds > best.odds){
       best = {
