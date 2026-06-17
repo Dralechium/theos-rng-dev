@@ -981,7 +981,7 @@ function rarity(o){
 }
 
 /* DATA */
-const SAVE_VERSION = 1;
+const SAVE_VERSION = 2;
 const MIGRATION_FLAG_KEY = "migration_v" + SAVE_VERSION + "_done";
 
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
@@ -1067,21 +1067,66 @@ function pick(){
   return viewers[0];
 }
 
-function migrateInventoryCards() {
+async function migrateInventoryCards() {
+
   const newInv = {};
 
   for (const [id, count] of Object.entries(inventory)) {
 
     let targetId = id;
 
-    if (cardMigrations[id]) {
-      targetId = cardMigrations[id];
+    const cleanId = id.trim();
+    
+    if(cardMigrations[cleanId]){
+      targetId = cardMigrations[cleanId];
     }
 
     newInv[targetId] = (newInv[targetId] || 0) + count;
   }
 
   inventory = newInv;
+
+
+  // migrate cloud inventory too
+  if(currentUser){
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("inventory")
+      .eq("id", currentUser.id)
+      .single();
+
+
+    if(data?.inventory){
+
+      const cloudNewInv = {};
+
+      for(const [id,count] of Object.entries(data.inventory)){
+
+        let targetId = id;
+
+        const cleanId = id.trim();
+        
+        if(cardMigrations[cleanId]){
+          targetId = cardMigrations[cleanId];
+        }
+
+        cloudNewInv[targetId] =
+          (cloudNewInv[targetId] || 0) + count;
+      }
+
+
+      await supabase
+        .from("profiles")
+        .update({
+          inventory: cloudNewInv
+        })
+        .eq("id", currentUser.id);
+
+    }
+  }
+
+
   save();
 }
 
@@ -1825,7 +1870,7 @@ if (!migrationDone) {
 
   console.log("Running one-time migration...");
 
-  migrateInventoryCards();
+  await migrateInventoryCards();
   migrateOldSave();
   migrateCardUpgrades();
   recalcBest();
