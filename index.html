@@ -1709,6 +1709,7 @@ async function init(){
 }
 
 init();
+runMigrations();
 window.onload = () => {
   const firstTab = document.querySelector(".tab");
   moveBlob(firstTab);
@@ -1759,7 +1760,6 @@ window.onload = () => {
  }
 
 }
-
 window.cutscene = function(type){
   // normalize input
   type = type.toLowerCase();
@@ -1960,7 +1960,7 @@ function markMigrationComplete(id){
     MIGRATION_KEY,
     JSON.stringify(done)
   );
-
+}
 
 async function runMigrations(){
 
