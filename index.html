@@ -974,6 +974,24 @@ const cardMigrations = {
   Gamingbyte444: "oblivionus123"
 };
 
+function migrateInventoryCards() {
+  const newInv = {};
+
+  for (const [id, count] of Object.entries(inventory)) {
+
+    let targetId = id;
+
+    if (cardMigrations[id]) {
+      targetId = cardMigrations[id];
+    }
+
+    newInv[targetId] = (newInv[targetId] || 0) + count;
+  }
+
+  inventory = newInv;
+  save();
+}
+
 /* RARITY */
 function rarity(o){
   if(o<=16) return "common";
@@ -984,20 +1002,9 @@ function rarity(o){
 }
 
 /* DATA */
-const SAVE_VERSION = 2;
-const MIGRATION_FLAG_KEY = "migration_v" + SAVE_VERSION + "_done";
-
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = null;
-
-const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
-
-if (savedVersion < SAVE_VERSION) {
-  localStorage.removeItem("inv");
-  localStorage.removeItem("rolls");
-  localStorage.removeItem("best");
-}
 
 document.getElementById("rolls").innerText = rolls;
 render();
@@ -1068,24 +1075,6 @@ function pick(){
   }
 
   return viewers[0];
-}
-
-function migrateInventoryCards() {
-  const newInv = {};
-
-  for (const [id, count] of Object.entries(inventory)) {
-
-    let targetId = id;
-
-    if (cardMigrations[id]) {
-      targetId = cardMigrations[id];
-    }
-
-    newInv[targetId] = (newInv[targetId] || 0) + count;
-  }
-
-  inventory = newInv;
-  save();
 }
 
 /* ROLL */
@@ -1646,7 +1635,7 @@ async function init(){
 }
 
 init().then(()=>{
-  runCardMigrations();
+  migrateInventoryCards();
 });
 save();
 window.onload = () => {
@@ -1824,37 +1813,6 @@ window.showCard = function(name){
     playCutscene(r);
   }
 };
-
-function runCardMigrations(){
-
-  let changed = false;
-
-  const newInv = {};
-
-  for(const [id,count] of Object.entries(inventory)){
-
-    let newId = id;
-
-    if(cardMigrations[id]){
-      newId = cardMigrations[id];
-      changed = true;
-    }
-
-    newInv[newId] = (newInv[newId] || 0) + count;
-  }
-
-
-  if(changed){
-
-    console.log("Card migration applied.");
-
-    inventory = newInv;
-
-    render();
-    recalcBest();
-  }
-
-}
 
 recalcBest();
 updateBestUI();
