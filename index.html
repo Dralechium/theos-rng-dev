@@ -1866,21 +1866,27 @@ window.showCard = function(name){
 
 const migrationDone = localStorage.getItem(MIGRATION_FLAG_KEY);
 
-if (!migrationDone) {
+async function runMigration(){
 
-  console.log("Running one-time migration...");
+  if (!migrationDone) {
 
-  await migrateInventoryCards();
-  migrateOldSave();
-  migrateCardUpgrades();
+    console.log("Running one-time migration...");
+
+    await migrateInventoryCards();
+    migrateOldSave();
+    migrateCardUpgrades();
+    recalcBest();
+    await save();
+
+    localStorage.setItem(MIGRATION_FLAG_KEY, "1");
+  }
+
   recalcBest();
-  save();
-
-  localStorage.setItem(MIGRATION_FLAG_KEY, "1");
+  updateBestUI();
 }
 
-recalcBest();
-updateBestUI();
+runMigration();
+
 window.addEventListener("load", () => {
   window.loadLeaderboard?.();
 });
