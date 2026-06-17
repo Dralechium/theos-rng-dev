@@ -983,8 +983,6 @@ function rarity(o){
 }
 
 /* DATA */
-const SAVE_VERSION = 2;
-const MIGRATION_FLAG_KEY = "migration_v" + SAVE_VERSION + "_done";
 
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
 let rolls = Number(localStorage.getItem("rolls")||0);
@@ -1069,67 +1067,82 @@ function pick(){
   return viewers[0];
 }
 
-async function migrateInventoryCards() {
+const CARD_MIGRATION_VERSION = 1;
 
-  const newInv = {};
 
-  for (const [id, count] of Object.entries(inventory)) {
+async function migrateCards(){
 
-    let targetId = id;
+  const version =
+    Number(localStorage.getItem("cardMigrationVersion") || 0);
 
-    const cleanId = id.trim();
-    
-    if(cardMigrations[cleanId]){
-      targetId = cardMigrations[cleanId];
+
+  if(version >= CARD_MIGRATION_VERSION)
+    return;
+
+
+  function convert(inv){
+
+    if(!inv) return {};
+
+    const newInv = {};
+
+    for(const [id,count] of Object.entries(inv)){
+
+      const newID =
+        cardMigrations[id] || id;
+
+
+      newInv[newID] =
+        (newInv[newID] || 0) + count;
+
     }
 
-    newInv[targetId] = (newInv[targetId] || 0) + count;
+    return newInv;
+
   }
 
-  inventory = newInv;
+
+  // LOCAL
+
+  inventory = convert(inventory);
 
 
-  // migrate cloud inventory too
+  // CLOUD
+
   if(currentUser){
 
-    const { data } = await supabase
+    const {data} = await supabase
       .from("profiles")
       .select("inventory")
       .eq("id", currentUser.id)
       .single();
 
 
-    if(data?.inventory){
-
-      const cloudNewInv = {};
-
-      for(const [id,count] of Object.entries(data.inventory)){
-
-        let targetId = id;
-
-        const cleanId = id.trim();
-        
-        if(cardMigrations[cleanId]){
-          targetId = cardMigrations[cleanId];
-        }
-
-        cloudNewInv[targetId] =
-          (cloudNewInv[targetId] || 0) + count;
-      }
-
+    if(data){
 
       await supabase
-        .from("profiles")
-        .update({
-          inventory: cloudNewInv
-        })
-        .eq("id", currentUser.id);
+      .from("profiles")
+      .update({
+        inventory: convert(data.inventory)
+      })
+      .eq(
+        "id",
+        currentUser.id
+      );
 
     }
+
   }
 
 
+  localStorage.setItem(
+    "cardMigrationVersion",
+    CARD_MIGRATION_VERSION
+  );
+
+
   save();
+
 }
 
 /* ROLL */
@@ -1675,18 +1688,24 @@ async function save(){
 
 /* START */
 async function init(){
+
   const { data } = await supabase.auth.getSession();
 
   if(data.session){
+
     currentUser = data.session.user;
+
     await loadCloudData();
+
+    await migrateCards();
+
     renderAuthUI();
-  } else {
-    renderAuthUI();
+
   }
 
   show(defaultViewer);
   render();
+
 }
 
 init();
@@ -1694,6 +1713,52 @@ window.onload = () => {
   const firstTab = document.querySelector(".tab");
   moveBlob(firstTab);
 };
+
+{
+ id:"rename_oldcard_newcard",
+
+ async run(){
+
+   function convert(inv){
+
+     if(inv.oldcard){
+
+       inv.newcard =
+       (inv.newcard || 0)
+       + inv.oldcard;
+
+       delete inv.oldcard;
+
+     }
+
+     return inv;
+   }
+
+
+   inventory = convert(inventory);
+
+
+   if(currentUser){
+
+    const {data}=await supabase
+    .from("profiles")
+    .select("inventory")
+    .eq("id",currentUser.id)
+    .single();
+
+
+    await supabase
+    .from("profiles")
+    .update({
+      inventory:convert(data.inventory)
+    })
+    .eq("id",currentUser.id);
+
+   }
+
+ }
+
+}
 
 window.cutscene = function(type){
   // normalize input
@@ -1866,28 +1931,74 @@ window.showCard = function(name){
   }
 };
 
-const migrationDone = localStorage.getItem(MIGRATION_FLAG_KEY);
+/* ============================
+   PERMANENT MIGRATION SYSTEM
+============================ */
 
-async function runMigration(){
 
-  if (!migrationDone) {
+const MIGRATION_KEY = "completed_migrations";
 
-    console.log("Running one-time migration...");
 
-    await migrateInventoryCards();
-    migrateOldSave();
-    migrateCardUpgrades();
-    recalcBest();
-    await save();
+function getCompletedMigrations(){
 
-    localStorage.setItem(MIGRATION_FLAG_KEY, "1");
-  }
+  return JSON.parse(
+    localStorage.getItem(MIGRATION_KEY) || "[]"
+  );
 
-  recalcBest();
-  updateBestUI();
 }
 
-runMigration();
+
+function markMigrationComplete(id){
+
+  const done = getCompletedMigrations();
+
+  if(!done.includes(id)){
+    done.push(id);
+  }
+
+  localStorage.setItem(
+    MIGRATION_KEY,
+    JSON.stringify(done)
+  );
+
+
+async function runMigrations(){
+
+
+  const completed =
+    getCompletedMigrations();
+
+
+
+  for(const migration of migrations){
+
+
+    if(completed.includes(migration.id))
+      continue;
+
+
+
+    console.log(
+      "Running migration:",
+      migration.id
+    );
+
+
+    await migration.run();
+
+
+    markMigrationComplete(
+      migration.id
+    );
+
+  }
+
+
+
+  save();
+
+
+}
 
 window.addEventListener("load", () => {
   window.loadLeaderboard?.();
