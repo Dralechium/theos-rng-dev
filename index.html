@@ -1076,18 +1076,24 @@ function pick(){
 function applyCardMigrations(inv){
 
   const migrated = {};
+  const alreadyMigrated = {};
 
   for(const [id,count] of Object.entries(inv)){
 
-    let newId = id;
+    if(cardMigrations[id]){
+      const newId = cardMigrations[id];
 
-    while(cardMigrations[newId]){
-      newId = cardMigrations[newId];
+      migrated[newId] =
+        (migrated[newId] || 0) + count;
+
+      alreadyMigrated[id] = true;
+
+    } else {
+
+      migrated[id] =
+        (migrated[id] || 0) + count;
+
     }
-
-    migrated[newId] =
-      (migrated[newId] || 0) + count;
-
   }
 
   return migrated;
@@ -1624,7 +1630,7 @@ async function save(){
         rolls: rolls,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
-        inventory: applyCardMigrations(inventory)
+        inventory: inventory
       })
       .eq("id", currentUser.id);
     await window.loadLeaderboard?.();
@@ -1827,14 +1833,9 @@ window.showCard = function(name){
   }
 };
 
-console.log("Applying card migrations...");
-
-inventory = applyCardMigrations(inventory);
-
 recalcBest();
 save();
 
-recalcBest();
 updateBestUI();
 window.addEventListener("load", () => {
   window.loadLeaderboard?.();
