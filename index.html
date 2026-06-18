@@ -723,6 +723,7 @@ body {
   const SUPABASE_URL = "https://phkbmkvrbdnejumydfwe.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoa2Jta3ZyYmRuZWp1bXlkZndlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MTYxMzEsImV4cCI6MjA5NzI5MjEzMX0.JD8Erd295EZSlbBD5GJd6FZpORPaD6HA8WWF5zQNo9Q";
 
+
   window.supabase = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY
@@ -1071,17 +1072,6 @@ function pick(){
   }
 
   return viewers[0];
-}
-
-function migrateBest(bestData){
-
-  if(!bestData) return null;
-
-  return {
-    name: cardMigrations[bestData.name] || bestData.name,
-    odds: bestData.odds
-  };
-
 }
 
 function applyCardMigrations(inv){
@@ -1452,7 +1442,7 @@ async function logout(){
         rolls: rolls,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
-        inventory: inventory
+        inventory: applyCardMigrations(inventory)
       })
       .eq("id", currentUser.id);
   }
@@ -1608,10 +1598,10 @@ async function loadCloudData(){
   };
 
   if(data.best_name){
-    best = migrateBest({
-      name:data.best_name,
-      odds:data.best_odds
-    });
+    best = {
+      name: data.best_name,
+      odds: data.best_odds
+    };
     updateBestUI();
     cloudReady = true;
     window.cloudReady = true;
