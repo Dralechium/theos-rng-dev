@@ -1074,25 +1074,10 @@ function migrateInventoryCards(){
   let inventoryData =
     JSON.parse(localStorage.getItem("inv") || "{}");
 
-  const completed =
-    JSON.parse(
-      localStorage.getItem(MIGRATION_FLAG_KEY) || "{}"
-    );
-
 
   for(const [oldId,newId] of Object.entries(cardMigrations)){
 
-    // already migrated this card
-    if(completed[oldId]) continue;
-
-
     if(inventoryData[oldId]){
-
-      inventoryData[newId] =
-        (inventoryData[newId] || 0)
-        + inventoryData[oldId];
-
-      delete inventoryData[oldId];
 
       console.log(
         "Migrated:",
@@ -1100,22 +1085,20 @@ function migrateInventoryCards(){
         "→",
         newId
       );
+
+      inventoryData[newId] =
+        (inventoryData[newId] || 0)
+        + inventoryData[oldId];
+
+      delete inventoryData[oldId];
     }
 
-
-    completed[oldId] = true;
   }
 
 
   localStorage.setItem(
     "inv",
     JSON.stringify(inventoryData)
-  );
-
-
-  localStorage.setItem(
-    MIGRATION_FLAG_KEY,
-    JSON.stringify(completed)
   );
 
 
