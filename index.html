@@ -720,8 +720,8 @@ body {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-  const SUPABASE_URL = "https://phkbmkvrbdnejumydfwe.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoa2Jta3ZyYmRuZWp1bXlkZndlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MTYxMzEsImV4cCI6MjA5NzI5MjEzMX0.JD8Erd295EZSlbBD5GJd6FZpORPaD6HA8WWF5zQNo9Q";
+  const SUPABASE_URL = "https://qihjozufbsfgqnwsrjan.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpaGpvenVmYnNmZ3Fud3NyamFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNTI0NDksImV4cCI6MjA5NjkyODQ0OX0.-KTNEJ9xz7X4DPp-wxe-AhoOxslGMmXi_EB_DSn9qdg";
 
   window.supabase = window.supabase.createClient(
     SUPABASE_URL,
@@ -939,6 +939,7 @@ function spawnCardSparklesOn(el, rarityType){
 const sparkleGap = 20; // 👈 change this to increase/decrease spacing
 
 /* VIEWERS */
+/* VIEWERS */
 const viewers = [
   {id:"duckwithsunnies", name:"duckwithsunnies", odds:2, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6ef3b0ef-bc0b-463d-a3d9-1f2a646a534f-profile_image-70x70.png"},
   {id:"ilee_ez", name:"ilee_ez", odds:4, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/e0efcfce-7516-4589-9bcf-5c6ec63a8a76-profile_image-70x70.png"},
@@ -967,10 +968,14 @@ const viewers = [
 const defaultViewer = viewers[viewers.length - 1];
 
 const cardMigrations = {
-  theosGMD: "taiago7",// oldId -> newId
+
+  // old id : new id
+
+  theosGMD: "taiago7",
   spaceuk: "kazagd",
   midgatal: "twkn9",
   Gamingbyte444: "oblivionus123"
+
 };
 
 /* RARITY */
@@ -983,9 +988,7 @@ function rarity(o){
 }
 
 /* DATA */
-const SAVE_VERSION = 1;
-const MIGRATION_FLAG_KEY = "card_migrations_done";
-  
+
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = null;
@@ -1069,42 +1072,26 @@ function pick(){
   return viewers[0];
 }
 
-function migrateInventoryCards(){
+function applyCardMigrations(inv){
 
-  let inventoryData =
-    JSON.parse(localStorage.getItem("inv") || "{}");
+  const migrated = {};
 
+  for(const [id,count] of Object.entries(inv)){
 
-  for(const [oldId,newId] of Object.entries(cardMigrations)){
+    let newId = id;
 
-    if(inventoryData[oldId]){
-
-      console.log(
-        "Migrated:",
-        oldId,
-        "→",
-        newId
-      );
-
-      inventoryData[newId] =
-        (inventoryData[newId] || 0)
-        + inventoryData[oldId];
-
-      delete inventoryData[oldId];
+    while(cardMigrations[newId]){
+      newId = cardMigrations[newId];
     }
+
+    migrated[newId] =
+      (migrated[newId] || 0) + count;
 
   }
 
-
-  localStorage.setItem(
-    "inv",
-    JSON.stringify(inventoryData)
-  );
-
-
-  inventory = inventoryData;
+  return migrated;
 }
-
+  
 /* ROLL */
 let running=false;
 let autoRoll = false;
@@ -1249,6 +1236,13 @@ function migrateOldSave() {
   inventory = newInv;
   save();
 }
+
+const cardUpgrades = {
+  theos: {
+    oldOdds: 10000,
+    newOdds: 100000
+  }
+};
 
 function getLocalDataSafe(){
   return {
@@ -1440,7 +1434,7 @@ async function logout(){
         rolls: rolls,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
-        inventory: inventory
+        inventory: applyCardMigrations(inventory)
       })
       .eq("id", currentUser.id);
   }
@@ -1590,7 +1584,7 @@ async function loadCloudData(){
   const localInv = JSON.parse(localStorage.getItem("inv") || "{}");
   
   rolls = Math.max(data.rolls ?? 0, localRolls);
-  inventory = data.inventory ?? {};
+  inventory = applyCardMigrations(data.inventory ?? {});
   currentUser.user_metadata = {
     username: data.username
   };
@@ -1629,7 +1623,7 @@ async function save(){
         rolls: rolls,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
-        inventory: inventory
+        inventory: applyCardMigrations(inventory)
       })
       .eq("id", currentUser.id);
     await window.loadLeaderboard?.();
@@ -1832,10 +1826,11 @@ window.showCard = function(name){
   }
 };
 
-migrateInventoryCards();
+console.log("Applying card migrations...");
+
+inventory = applyCardMigrations(inventory);
 
 recalcBest();
-
 save();
 
 recalcBest();
