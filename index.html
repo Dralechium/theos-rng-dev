@@ -1073,6 +1073,17 @@ function pick(){
   return viewers[0];
 }
 
+function migrateBest(bestData){
+
+  if(!bestData) return null;
+
+  return {
+    name: cardMigrations[bestData.name] || bestData.name,
+    odds: bestData.odds
+  };
+
+}
+
 function applyCardMigrations(inv){
 
   const migrated = {};
@@ -1441,7 +1452,7 @@ async function logout(){
         rolls: rolls,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
-        inventory: applyCardMigrations(inventory)
+        inventory: inventory
       })
       .eq("id", currentUser.id);
   }
@@ -1597,10 +1608,10 @@ async function loadCloudData(){
   };
 
   if(data.best_name){
-    best = {
-      name: data.best_name,
-      odds: data.best_odds
-    };
+    best = migrateBest({
+      name:data.best_name,
+      odds:data.best_odds
+    });
     updateBestUI();
     cloudReady = true;
     window.cloudReady = true;
