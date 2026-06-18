@@ -989,16 +989,17 @@ function rarity(o){
 
 /* DATA */
 
+const SAVE_VERSION = 2;
+
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = null;
 
 const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
 
-if (savedVersion < SAVE_VERSION) {
-  localStorage.removeItem("inv");
-  localStorage.removeItem("rolls");
-  localStorage.removeItem("best");
+if(savedVersion < SAVE_VERSION){
+  inventory = applyCardMigrations(inventory);
+  localStorage.setItem("saveVersion", SAVE_VERSION);
 }
 
 document.getElementById("rolls").innerText = rolls;
