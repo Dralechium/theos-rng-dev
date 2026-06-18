@@ -992,7 +992,7 @@ function rarity(o){
 /* DATA */
 
 // Automatically changes whenever cardMigrations changes
-const SAVE_VERSION = Object.keys(cardMigrations).length;
+const SAVE_VERSION = 1;
 
 let inventory = JSON.parse(localStorage.getItem("inv") || "{}");
 let rolls = Number(localStorage.getItem("rolls") || 0);
@@ -1085,10 +1085,16 @@ function applyCardMigrations(inv){
 
   for(const [id,count] of Object.entries(inv || {})){
 
-    const newId = cardMigrations[id] || id;
+    const newId = cardMigrations[id];
 
-    migrated[newId] =
-      (migrated[newId] || 0) + count;
+    if(newId){
+      migrated[newId] =
+        (migrated[newId] || 0) + count;
+    }
+    else{
+      migrated[id] =
+        (migrated[id] || 0) + count;
+    }
 
   }
 
@@ -1437,7 +1443,8 @@ async function logout(){
         rolls: rolls,
         best_name: best?.name || null,
         best_odds: best?.odds || null,
-        inventory: applyCardMigrations(inventory)
+        inventory: inventory,
+        save_version:SAVE_VERSION
       })
       .eq("id", currentUser.id);
   }
@@ -1579,6 +1586,24 @@ async function loadCloudData(){
     .single();
 
   if(!data) return;
+  if((data.save_version ?? 0) < SAVE_VERSION){
+  
+    inventory = applyCardMigrations(data.inventory || {});
+  
+    await supabase
+      .from("profiles")
+      .update({
+        inventory,
+        save_version:SAVE_VERSION
+      })
+      .eq("id", currentUser.id);
+  
+  }
+  else{
+  
+    inventory = data.inventory || {};
+  
+  }
 
   if (!currentUser) return;
   
@@ -1587,20 +1612,9 @@ async function loadCloudData(){
   const localInv = JSON.parse(localStorage.getItem("inv") || "{}");
   
   rolls = Math.max(data.rolls ?? 0, localRolls);
+  
   const migratedInventory = applyCardMigrations(data.inventory ?? {});
-  
-  inventory = migratedInventory;
-    // permanently save migration to cloud
-  if(JSON.stringify(data.inventory ?? {}) !== JSON.stringify(migratedInventory)){
-  
-    await supabase
-      .from("profiles")
-      .update({
-        inventory: migratedInventory
-      })
-      .eq("id", currentUser.id);
-  
-  }
+
   currentUser.user_metadata = {
     username: data.username
   };
