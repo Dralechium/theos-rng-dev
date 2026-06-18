@@ -955,7 +955,8 @@ const viewers = [
   {id:"ChefGmd", name:"ChefGmd", odds:512, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/f6dfdec2-1ad0-4757-aa3c-c061cc5cab69-profile_image-70x70.png"},
   {id:"midgatal", name:"midgatal", odds:750, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/bc185f86-30d2-4422-b547-5f4e3c504d54-profile_image-70x70.png"},
   {id:"IVDrale", name:"IVDrale", odds:1000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/6e71f426-65ca-4914-b6e8-0e5499f032cb-profile_image-70x70.png"},
-  {id:"Gamingbyte444", name:"Gamingbyte444", odds:1024, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/a6d961bf-ece5-4464-9b1e-5a326cfebe94-profile_image-70x70.png"},
+  {id:"oblivionus123", name:"oblivionus123", odds:1024, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/e89beaf6-f0fe-4ffc-b8f9-5631ff809344-profile_image-70x70.png"},
+  {id:"Gamingbyte444", name:"Gamingbyte444", odds:2048, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/a6d961bf-ece5-4464-9b1e-5a326cfebe94-profile_image-70x70.png"},
   {id:"Christ_Is_God", name:"Christ_Is_God", odds:5000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/98b31c09-fa8b-4318-88bd-ef8a0443b772-profile_image-70x70.png"},
   {id:"kazagd", name:"kazagd", odds:7500, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/7725062e-c231-406a-b000-34973ce973a2-profile_image-70x70.png"},
   {id:"taiago7", name:"taiago7", odds:10000, image:"https://static-cdn.jtvnw.net/jtv_user_pictures/133319eb-8b72-40c2-89f5-4bcf9c2dfa24-profile_image-70x70.png"},
@@ -968,7 +969,8 @@ const defaultViewer = viewers[viewers.length - 1];
 const cardMigrations = {
   theosGMD: "taiago7",// oldId -> newId
   spaceuk: "kazagd",
-  midgatal: "twkn9"
+  midgatal: "twkn9",
+  Gamingbyte444: "oblivionus123"
 };
 
 /* RARITY */
@@ -981,9 +983,8 @@ function rarity(o){
 }
 
 /* DATA */
-const SAVE_VERSION = 1;
-const MIGRATION_FLAG_KEY = "migration_v" + SAVE_VERSION + "_done";
-
+const MIGRATION_FLAG_KEY = "card_migrations_done";
+  
 let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
 let rolls = Number(localStorage.getItem("rolls")||0);
 let best = null;
@@ -1067,22 +1068,57 @@ function pick(){
   return viewers[0];
 }
 
-function migrateInventoryCards() {
-  const newInv = {};
+function migrateInventoryCards(){
 
-  for (const [id, count] of Object.entries(inventory)) {
+  let inventoryData =
+    JSON.parse(localStorage.getItem("inv") || "{}");
 
-    let targetId = id;
+  const completed =
+    JSON.parse(
+      localStorage.getItem(MIGRATION_FLAG_KEY) || "{}"
+    );
 
-    if (cardMigrations[id]) {
-      targetId = cardMigrations[id];
+
+  for(const [oldId,newId] of Object.entries(cardMigrations)){
+
+    // already migrated this card
+    if(completed[oldId]) continue;
+
+
+    if(inventoryData[oldId]){
+
+      inventoryData[newId] =
+        (inventoryData[newId] || 0)
+        + inventoryData[oldId];
+
+      delete inventoryData[oldId];
+
+      console.log(
+        "Migrated:",
+        oldId,
+        "→",
+        newId
+      );
     }
 
-    newInv[targetId] = (newInv[targetId] || 0) + count;
+
+    completed[oldId] = true;
   }
 
-  inventory = newInv;
-  save();
+
+  localStorage.setItem(
+    "inv",
+    JSON.stringify(inventoryData)
+  );
+
+
+  localStorage.setItem(
+    MIGRATION_FLAG_KEY,
+    JSON.stringify(completed)
+  );
+
+
+  inventory = inventoryData;
 }
 
 /* ROLL */
@@ -1229,13 +1265,6 @@ function migrateOldSave() {
   inventory = newInv;
   save();
 }
-
-const cardUpgrades = {
-  theos: {
-    oldOdds: 10000,
-    newOdds: 100000
-  }
-};
 
 function getLocalDataSafe(){
   return {
@@ -1819,20 +1848,11 @@ window.showCard = function(name){
   }
 };
 
-const migrationDone = localStorage.getItem(MIGRATION_FLAG_KEY);
+migrateInventoryCards();
 
-if (!migrationDone) {
+recalcBest();
 
-  console.log("Running one-time migration...");
-
-  migrateInventoryCards();
-  migrateOldSave();
-  migrateCardUpgrades();
-  recalcBest();
-  save();
-
-  localStorage.setItem(MIGRATION_FLAG_KEY, "1");
-}
+save();
 
 recalcBest();
 updateBestUI();
