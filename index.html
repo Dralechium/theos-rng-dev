@@ -989,17 +989,22 @@ function rarity(o){
 }
 
 /* DATA */
+/* DATA */
 
-const SAVE_VERSION = 2;
+// Automatically changes whenever cardMigrations changes
+const SAVE_VERSION = Object.keys(cardMigrations).length;
 
-let inventory = JSON.parse(localStorage.getItem("inv")||"{}");
-let rolls = Number(localStorage.getItem("rolls")||0);
-let best = null;
+let inventory = JSON.parse(localStorage.getItem("inv") || "{}");
+let rolls = Number(localStorage.getItem("rolls") || 0);
+let best = JSON.parse(localStorage.getItem("best") || "null");
 
 const savedVersion = Number(localStorage.getItem("saveVersion") || 0);
 
-if(savedVersion < SAVE_VERSION){
+if(savedVersion !== SAVE_VERSION){
+
   inventory = applyCardMigrations(inventory);
+
+  localStorage.setItem("inv", JSON.stringify(inventory));
   localStorage.setItem("saveVersion", SAVE_VERSION);
 }
 
@@ -1077,24 +1082,14 @@ function pick(){
 function applyCardMigrations(inv){
 
   const migrated = {};
-  const alreadyMigrated = {};
 
-  for(const [id,count] of Object.entries(inv)){
+  for(const [id,count] of Object.entries(inv || {})){
 
-    if(cardMigrations[id]){
-      const newId = cardMigrations[id];
+    const newId = cardMigrations[id] || id;
 
-      migrated[newId] =
-        (migrated[newId] || 0) + count;
+    migrated[newId] =
+      (migrated[newId] || 0) + count;
 
-      alreadyMigrated[id] = true;
-
-    } else {
-
-      migrated[id] =
-        (migrated[id] || 0) + count;
-
-    }
   }
 
   return migrated;
@@ -1482,9 +1477,9 @@ async function mergeLocalToCloud() {
 
   const local = getLocalDataSafe();
   const localRolls = local.rolls;
-  const localInv = local.inv;
+  const localInv = applyCardMigrations(local.inv);
 
-  const cloudInv = data.inventory || {};
+  const cloudInv = applyCardMigrations(data.inventory || {});
 
   // merge inventories (ADD counts)
   const mergedInv = { ...cloudInv };
@@ -1592,7 +1587,20 @@ async function loadCloudData(){
   const localInv = JSON.parse(localStorage.getItem("inv") || "{}");
   
   rolls = Math.max(data.rolls ?? 0, localRolls);
-  inventory = applyCardMigrations(data.inventory ?? {});
+  const migratedInventory = applyCardMigrations(data.inventory ?? {});
+  
+  inventory = migratedInventory;
+    // permanently save migration to cloud
+  if(JSON.stringify(data.inventory ?? {}) !== JSON.stringify(migratedInventory)){
+  
+    await supabase
+      .from("profiles")
+      .update({
+        inventory: migratedInventory
+      })
+      .eq("id", currentUser.id);
+  
+  }
   currentUser.user_metadata = {
     username: data.username
   };
@@ -1621,7 +1629,7 @@ async function save(){
   localStorage.setItem("inv", JSON.stringify(inventory));
   localStorage.setItem("rolls", rolls);
   localStorage.setItem("best", JSON.stringify(best));
-  localStorage.setItem("saveVersion", SAVE_VERSION);
+  localStorage.setItem("saveVersion", String(SAVE_VERSION));
 
   if (currentUser && cloudReady === true && navigator.onLine) {
     console.log("Saving to cloud...", { rolls, inventory });
