@@ -1559,7 +1559,6 @@ async function loadCloudData(){
   
   rolls = Math.max(data.rolls ?? 0, localRolls);
   inventory = data.inventory ?? {};
-  .eq("id", currentUser.id);
   currentUser.user_metadata = {
     username: data.username
   };
@@ -1800,9 +1799,6 @@ window.showCard = function(name){
     playCutscene(r);
   }
 };
-
-const savedVersion =
-  Number(localStorage.getItem("saveVersion") || 0);
 
 if (savedVersion < SAVE_VERSION) {
 
